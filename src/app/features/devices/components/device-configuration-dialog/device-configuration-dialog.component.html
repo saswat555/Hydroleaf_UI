@@ -1,0 +1,111 @@
+<div class="dialog-container">
+    <h2 mat-dialog-title>Configure Device</h2>
+    
+    <form [formGroup]="configForm" class="config-form">
+      <mat-dialog-content>
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Device Name</mat-label>
+            <input matInput formControlName="name" placeholder="Enter device name">
+            <mat-hint>Give your device a unique name</mat-hint>
+            <mat-error *ngIf="configForm.get('name')?.hasError('required')">
+              Name is required
+            </mat-error>
+            <mat-error *ngIf="configForm.get('name')?.hasError('minlength')">
+              Name must be at least 3 characters
+            </mat-error>
+          </mat-form-field>
+        </div>
+  
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Device Type</mat-label>
+            <mat-select formControlName="type">
+              <mat-option *ngFor="let type of deviceTypes" [value]="type.value">
+                {{type.label}}
+              </mat-option>
+            </mat-select>
+            <mat-hint>Select the type of device you're configuring</mat-hint>
+            <mat-error *ngIf="configForm.get('type')?.hasError('required')">
+              Device type is required
+            </mat-error>
+          </mat-form-field>
+        </div>
+  
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>MQTT Topic</mat-label>
+            <input matInput formControlName="mqtt_topic" 
+                   placeholder="krishiverse/pump_controller_1/command">
+            <mat-hint>Format: krishiverse/pump_controller_1/command</mat-hint>
+            <mat-error *ngIf="configForm.get('mqtt_topic')?.hasError('required')">
+              MQTT topic is required
+            </mat-error>
+            <mat-error *ngIf="configForm.get('mqtt_topic')?.hasError('pattern')">
+              Invalid format. Use: krishiverse/device_id/command
+            </mat-error>
+          </mat-form-field>
+        </div>
+  
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Location Description</mat-label>
+            <input matInput formControlName="location_description" 
+                   placeholder="e.g., Greenhouse 1, Zone A">
+            <mat-hint>Optional: Describe where this device is installed</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <!-- Pump Configurations Section (shown only for dosing units) -->
+        <div *ngIf="configForm.get('type')?.value === 'dosing_unit'" class="pump-configs">
+          <h3>Pump Configurations</h3>
+          <div formArrayName="pump_configurations">
+            <div *ngFor="let pump of pumpConfigs.controls; let i=index" 
+                 [formGroupName]="i" class="pump-config">
+              <h4>Pump {{i + 1}}</h4>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Chemical Name</mat-label>
+                <input matInput formControlName="chemical_name" 
+                       placeholder="e.g., pH Up">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Description</mat-label>
+                <input matInput formControlName="chemical_description" 
+                       placeholder="Optional description">
+              </mat-form-field>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sensor Parameters (shown only for sensor types) -->
+        <div *ngIf="configForm.get('type')?.value.includes('sensor')" 
+             formGroupName="sensor_parameters" class="sensor-params">
+          <h3>Sensor Parameters</h3>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Measurement Interval (seconds)</mat-label>
+            <input matInput type="number" formControlName="measurement_interval">
+          </mat-form-field>
+        </div>
+
+        <!-- Form Debug Information -->
+        <div class="debug-info" style="margin: 20px 0; padding: 10px; background: #f5f5f5; font-size: 12px;">
+          <div>Form Valid: {{ configForm.valid }}</div>
+          <div>Name Valid: {{ configForm.get('name')?.valid }}</div>
+          <div>Type Valid: {{ configForm.get('type')?.valid }}</div>
+          <div>MQTT Topic Valid: {{ configForm.get('mqtt_topic')?.valid }}</div>
+        </div>
+      </mat-dialog-content>
+  
+      <mat-dialog-actions align="end">
+        <button mat-button (click)="onCancel()" [disabled]="isSubmitting">Cancel</button>
+        <button mat-raised-button color="primary" 
+                [disabled]="!configForm.get('name')?.valid || 
+                           !configForm.get('type')?.valid || 
+                           !configForm.get('mqtt_topic')?.valid || 
+                           isSubmitting"
+                (click)="onSubmit()">
+          {{isSubmitting ? 'Saving...' : 'Save Configuration'}}
+        </button>
+      </mat-dialog-actions>
+    </form>
+  </div>

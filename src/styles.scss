@@ -1,1 +1,114 @@
-/* You can add global styles to this file, and also import other style files */
+/* Import pre-built theme */
+@import '@angular/material/prebuilt-themes/indigo-pink.css';
+
+/* Global styles */
+html, body { 
+  height: 100%; 
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+body {
+  background-color: #fafafa;
+}
+
+/* Material Icons */
+@import url("https://fonts.googleapis.com/icon?family=Material+Icons");
+
+/* Utility classes */
+.grid {
+  display: grid;
+  gap: 1rem;
+  
+  &.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  &.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  &.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.flex {
+  display: flex;
+  
+  &.center {
+    align-items: center;
+    justify-content: center;
+  }
+  
+  &.space-between {
+    justify-content: space-between;
+  }
+  
+  &.column {
+    flex-direction: column;
+  }
+}
+
+/* Card styles */
+.mat-mdc-card {
+  margin: 1rem;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+/* Form styles */
+.form-field-full {
+  width: 100%;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Spacing utilities */
+.m-1 { margin: 0.25rem; }
+.m-2 { margin: 0.5rem; }
+.m-3 { margin: 1rem; }
+.m-4 { margin: 1.5rem; }
+
+.p-1 { padding: 0.25rem; }
+.p-2 { padding: 0.5rem; }
+.p-3 { padding: 1rem; }
+.p-4 { padding: 1.5rem; }
+
+/* Container */
+.container {
+  padding: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Material overrides */
+.mat-mdc-button-base {
+  margin: 0.25rem !important;
+}
+
+.mat-mdc-form-field {
+  width: 100%;
+}
+
+/* Layout utilities */
+.full-width {
+  width: 100%;
+}
+
+.text-center {
+  text-align: center;
+}
+
+/* Responsive utilities */
+@media (max-width: 599px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+@media (min-width: 600px) {
+  .hide-desktop {
+    display: none !important;
+  }
+}

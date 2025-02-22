@@ -1,0 +1,48 @@
+<div class="discovery-container">
+    <div class="header">
+      <h2>Device Discovery</h2>
+      <button mat-raised-button 
+              color="primary" 
+              (click)="scanForDevices()" 
+              [disabled]="isScanning">
+        <mat-icon>refresh</mat-icon>
+        {{ isScanning ? 'Scanning...' : 'Scan for Devices' }}
+      </button>
+    </div>
+  
+    <div class="content">
+      <mat-progress-spinner *ngIf="isScanning"
+                           mode="indeterminate"
+                           diameter="50">
+      </mat-progress-spinner>
+  
+      <div *ngIf="error" class="error-message">
+        {{ error }}
+      </div>
+  
+      <div *ngIf="!isScanning && discoveredDevices.length === 0" class="no-devices">
+        No devices found. Make sure your devices are powered on and in range.
+      </div>
+  
+      <div class="devices-grid">
+        <mat-card *ngFor="let device of discoveredDevices" class="device-card">
+          <mat-card-header>
+            <mat-card-title>{{ device.name || 'Unknown Device' }}</mat-card-title>
+            <mat-card-subtitle>{{ device.type || 'Unknown Type' }}</mat-card-subtitle>
+          </mat-card-header>
+          
+          <mat-card-content>
+            <p>ID: {{ device.id }}</p>
+            <p>Status: {{ device.status || 'Unknown' }}</p>
+            <!-- Add more device details as needed -->
+          </mat-card-content>
+  
+          <mat-card-actions align="end">
+            <button mat-button color="primary" (click)="configureDevice(device)">
+              Configure
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+    </div>
+  </div>
