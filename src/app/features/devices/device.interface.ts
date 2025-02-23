@@ -2,7 +2,7 @@ export interface Device {
     id?: number;
     name: string;
     type: 'dosing_unit' | 'ph_tds_sensor' | 'environment_sensor';
-    mqtt_topic: string;
+    http_endpoint: string;
     location_description?: string;
     created_at?: string;
     updated_at?: string;
@@ -17,5 +17,5 @@ export interface Device {
     name?: string;
     type?: string;
     status?: string;
-    mqtt_topic?: string;
+    http_endpoint?: string;
   }

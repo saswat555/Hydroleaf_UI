@@ -24,7 +24,7 @@ import { MatCardModule } from '@angular/material/card';
 })
 export class DashboardComponent implements OnInit {
   devices: any[] = [];
-  displayedColumns: string[] = ['id', 'name', 'mqtt_topic', 'pump_configurations', 'actions'];
+  displayedColumns: string[] = ['id', 'name', 'http_endpoint', 'pump_configurations', 'actions'];
   loading: boolean = true;
 
   constructor(private http: HttpClient) {}

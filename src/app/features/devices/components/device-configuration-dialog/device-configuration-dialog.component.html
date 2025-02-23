@@ -34,14 +34,14 @@
   
         <div class="form-row">
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>MQTT Topic</mat-label>
-            <input matInput formControlName="mqtt_topic" 
-                   placeholder="krishiverse/pump_controller_1/command">
+            <mat-label>HTTP Endpoint</mat-label>
+            <input matInput formControlName="http_endpoint" 
+                   placeholder="000.000.000.000">
             <mat-hint>Format: krishiverse/pump_controller_1/command</mat-hint>
-            <mat-error *ngIf="configForm.get('mqtt_topic')?.hasError('required')">
-              MQTT topic is required
+            <mat-error *ngIf="configForm.get('http_endpoint')?.hasError('required')">
+              HTTP Endpoint is required
             </mat-error>
-            <mat-error *ngIf="configForm.get('mqtt_topic')?.hasError('pattern')">
+            <mat-error *ngIf="configForm.get('http_endpoint')?.hasError('pattern')">
               Invalid format. Use: krishiverse/device_id/command
             </mat-error>
           </mat-form-field>
@@ -92,7 +92,7 @@
           <div>Form Valid: {{ configForm.valid }}</div>
           <div>Name Valid: {{ configForm.get('name')?.valid }}</div>
           <div>Type Valid: {{ configForm.get('type')?.valid }}</div>
-          <div>MQTT Topic Valid: {{ configForm.get('mqtt_topic')?.valid }}</div>
+          <div>HTTP Endpoint Valid: {{ configForm.get('http_endpoint')?.valid }}</div>
         </div>
       </mat-dialog-content>
   
@@ -101,7 +101,7 @@
         <button mat-raised-button color="primary" 
                 [disabled]="!configForm.get('name')?.valid || 
                            !configForm.get('type')?.valid || 
-                           !configForm.get('mqtt_topic')?.valid || 
+                           !configForm.get('http_endpoint')?.valid || 
                            isSubmitting"
                 (click)="onSubmit()">
           {{isSubmitting ? 'Saving...' : 'Save Configuration'}}
