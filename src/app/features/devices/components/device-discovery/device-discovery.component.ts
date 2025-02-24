@@ -1,13 +1,30 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Injectable } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { Observable } from 'rxjs';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { DeviceService } from '../../../../core/services/device.service';
-import { DeviceConfigurationDialogComponent } from '../device-configuration-dialog/device-configuration-dialog.component';
 import { MatIcon } from '@angular/material/icon';
+import { DeviceConfigurationDialogComponent } from '../device-configuration-dialog/device-configuration-dialog.component';
+import { FormsModule } from '@angular/forms';
+
+/**
+ * Minimal DeviceService to check a device by IP.
+ */
+@Injectable({
+  providedIn: 'root'
+})
+export class DeviceService {
+  constructor(private http: HttpClient) {}
+
+  checkDevice(ip: string): Observable<any> {
+    // Calls the backend endpoint /api/v1/devices/discover with ?ip=<ip>
+    return this.http.get('/api/v1/devices/discover', { params: { ip } });
+  }
+}
 
 @Component({
   selector: 'app-device-discovery',
@@ -16,6 +33,8 @@ import { MatIcon } from '@angular/material/icon';
   standalone: true,
   imports: [
     CommonModule,
+    HttpClientModule,
+    FormsModule,
     MatCardModule,
     MatButtonModule,
     MatProgressSpinnerModule,
@@ -23,9 +42,14 @@ import { MatIcon } from '@angular/material/icon';
   ]
 })
 export class DeviceDiscoveryComponent implements OnInit {
-  discoveredDevices: any[] = [];
-  isScanning = false;
+  // Holds the discovered device (if any)
+  discoveredDevice: any = null;
+  // For showing error messages
   error: string | null = null;
+  // Indicates if a check is in progress
+  isChecking = false;
+  // Bound to the input field for entering an IP address
+  ipToCheck: string = '';
 
   constructor(
     private deviceService: DeviceService,
@@ -33,33 +57,40 @@ export class DeviceDiscoveryComponent implements OnInit {
     private snackBar: MatSnackBar
   ) {}
 
-  ngOnInit() {
-    this.scanForDevices();
+  ngOnInit(): void {
+    // Waiting for user input; no auto-check by default.
   }
 
-  scanForDevices() {
-    this.isScanning = true;
+  checkDevice(): void {
+    if (!this.ipToCheck.trim()) {
+      this.snackBar.open('Please enter a valid IP address', 'Close', { duration: 3000 });
+      return;
+    }
+    this.isChecking = true;
     this.error = null;
-
-    this.deviceService.discoverDevices().subscribe({
+    this.discoveredDevice = null;
+    this.deviceService.checkDevice(this.ipToCheck.trim()).subscribe({
       next: (response) => {
-        this.discoveredDevices = response.devices;
-        if (this.discoveredDevices.length === 0) {
-          this.snackBar.open('No devices found', 'Close', { duration: 3000 });
+        if (response && response.id) {
+          this.discoveredDevice = response;
+          this.snackBar.open('Device found!', 'Close', { duration: 3000 });
+        } else {
+          this.snackBar.open('No device found at that IP', 'Close', { duration: 3000 });
         }
       },
+      
       error: (err) => {
-        this.error = 'Failed to discover devices';
-        this.snackBar.open('Error scanning for devices', 'Close', { duration: 3000 });
-        console.error('Device discovery error:', err);
+        this.error = 'Failed to check device';
+        this.snackBar.open('Error checking device', 'Close', { duration: 3000 });
+        console.error('Device check error:', err);
       },
       complete: () => {
-        this.isScanning = false;
+        this.isChecking = false;
       }
     });
   }
 
-  configureDevice(device: any) {
+  configureDevice(device: any): void {
     const dialogRef = this.dialog.open(DeviceConfigurationDialogComponent, {
       width: '600px',
       data: { device }
