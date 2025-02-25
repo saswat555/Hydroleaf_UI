@@ -1,0 +1,81 @@
+<div class="dosing-container">
+  <div class="dosing-header">
+    <div class="header-content">
+      <i class="header-icon lucide-flask-conical"></i>
+      <h2>Dosing Control</h2>
+    </div>
+  </div>
+
+  <div class="control-panel">
+    <div class="control-grid">
+      <!-- Plant Selection -->
+      <div class="form-group">
+        <label for="plant-select">Select Plant</label>
+        <div class="select-wrapper">
+          <select id="plant-select" [(ngModel)]="selectedPlant">
+            <option *ngFor="let plant of (plants$ | async)" [ngValue]="plant">
+              {{ plant.name }} - ({{ plant.region }} | {{ plant.growth_stage }})
+            </option>
+          </select>
+          <i class="select-icon lucide-chevron-down"></i>
+        </div>
+      </div>
+
+      <!-- Device Selection -->
+      <div class="form-group">
+        <label for="device-select">Select Device</label>
+        <div class="select-wrapper">
+          <select id="device-select" [(ngModel)]="selectedDevice">
+            <option *ngFor="let device of (devices$ | async)" [ngValue]="device">
+              {{ device.name }} ({{ device.id }})
+            </option>
+          </select>
+          <i class="select-icon lucide-chevron-down"></i>
+        </div>
+      </div>
+
+      <!-- Action Button -->
+      <div class="form-group button-group">
+        <button class="btn-primary" (click)="checkDosing()">
+          <i class="lucide-play"></i>
+          Start Dosing
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div class="loading-state" *ngIf="isLoading">
+      <div class="loading-content">
+        <i class="loading-spinner lucide-loader-2"></i>
+        <span>Analyzing dosing requirements<span class="dots">...</span></span>
+      </div>
+    </div>
+
+    <!-- LLM Response -->
+    <div class="response-container" *ngIf="llmResponse">
+      <div class="response-header">
+        <h3>Dosing Plan</h3>
+        <button class="btn-icon" (click)="copyToClipboard(llmResponse)">
+          <i class="lucide-copy"></i>
+        </button>
+      </div>
+      <div class="response-content">a
+        <div class="response-content">
+          <div *ngIf="llmResponse && llmResponse.length">
+            <div *ngFor="let responseItem of llmResponse">
+              <div *ngIf="isValidJson(responseItem); else rawText">
+                <pre>{{ responseItem | json }}</pre>
+              </div>
+              <ng-template #rawText>
+                <div class="think-bubble">
+                  <pre>{{ responseItem }}</pre>
+                </div>
+              </ng-template>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Device } from '../../features/devices/device.interface';
+import { Device } from '../features/devices/device.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -29,4 +29,10 @@ export class DeviceService {
   getDeviceById(id: number): Observable<Device> {
     return this.http.get<Device>(`${this.apiUrl}/devices/${id}`);
   }
+
+  /** ✅ Register a new dosing device */
+registerDevice(deviceData: any): Observable<any> {
+  return this.http.post(`${this.apiUrl}/devices/dosing`, deviceData);
+}
+
 }

@@ -2,9 +2,9 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { DosingControlComponent } from './dosing-control/dosing-control.component';
+import { PlantControlComponent } from './components/plant-control/plant-control.component';
 import { PlantService } from '../../services/plant.service'; 
-import { DosingRoutingModule } from './dosing-routing.module';
+import { PlantRoutingModule } from './plant-routing.module';
 
 
 @NgModule({
@@ -12,10 +12,10 @@ import { DosingRoutingModule } from './dosing-routing.module';
   imports: [
     CommonModule,
     FormsModule,
-    DosingControlComponent,
-    DosingRoutingModule
+    PlantControlComponent,
+    PlantRoutingModule
   ],
   providers: [PlantService], // ✅ Register the PlantService
-  exports: [DosingControlComponent] 
+  exports: [PlantControlComponent] 
 })
-export class DosingModule { }
+export class PlantModule { }

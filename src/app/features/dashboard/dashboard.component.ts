@@ -5,6 +5,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { SharedStateService } from '../../services/shared-state.service';
+import {MatIconModule} from '@angular/material/icon'
 
 @Component({
   selector: 'app-dashboard',
@@ -17,6 +19,7 @@ import { MatCardModule } from '@angular/material/card';
     MatProgressSpinnerModule,
     MatTableModule,
     MatButtonModule,
+    MatIconModule,
     MatCardModule,
     NgIf,
     NgForOf
@@ -27,7 +30,7 @@ export class DashboardComponent implements OnInit {
   displayedColumns: string[] = ['id', 'name', 'http_endpoint', 'pump_configurations', 'actions'];
   loading: boolean = true;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private sharedState: SharedStateService ) {}
 
   ngOnInit(): void {
     this.fetchDevices();
@@ -39,6 +42,7 @@ export class DashboardComponent implements OnInit {
         console.log('Devices fetched:', data);
         this.devices = data;
         this.loading = false;
+        this.sharedState.setDevices(this.devices = data);
       },
       error: (err) => {
         console.error('Error fetching devices', err);

@@ -1,0 +1,99 @@
+<div class="plants-container">
+  <header class="plants-header">
+    <h2>Plants List</h2>
+    <button class="primary-button" *ngIf="!isCreated" (click)="isCreating = !isCreating">
+      {{ isCreating ? 'Cancel' : 'Create New Plant' }}
+    </button>
+  </header>
+
+  <div class="create-form-container" *ngIf="isCreating">
+    <h3>Create a New Plant</h3>
+    <form (ngSubmit)="createPlant()" class="plant-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="plantName">Name:</label>
+          <input id="plantName" type="text" [(ngModel)]="newPlant.name" name="name" required>
+        </div>
+        <div class="form-group">
+          <label for="plantType">Type:</label>
+          <input id="plantType" type="text" [(ngModel)]="newPlant.type" name="type" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="plantGrowthStage">Growth Stage:</label>
+          <input id="plantGrowthStage" type="text" [(ngModel)]="newPlant.growth_stage" name="growth_stage" required>
+        </div>
+        <div class="form-group">
+          <label for="plantSeedingDate">Seeding Date:</label>
+          <input id="plantSeedingDate" type="date" [(ngModel)]="newPlant.seeding_date" name="seeding_date" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="plantRegion">Region:</label>
+        <input id="plantRegion" type="text" [(ngModel)]="newPlant.region" name="region" required>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="submit-button">Submit</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="success-message" *ngIf="isCreated && !isLoading">
+    <div class="success-icon">✅</div>
+    <p>Plant created successfully!</p>
+    <button class="action-button" (click)="checkDosing()">Check Dosing</button>
+  </div>
+
+  <div class="loading-container" *ngIf="isLoading">
+    <div class="loading-spinner"></div>
+    <p>LLM is thinking... (This may take up to 2 minutes)</p>
+  </div>
+
+  <div class="response-container" *ngIf="llmResponse">
+    <h3>LLM Dosing Recommendation:</h3>
+    <pre class="response-content">{{ llmResponse | json }}</pre>
+  </div>
+
+  <div class="table-container">
+    <table class="plants-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Growth Stage</th>
+          <th>Region</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let plant of plants; let even = even" [ngClass]="{'even-row': even}">
+          <td>{{ plant.id }}</td>
+          <td>{{ plant.name }}</td>
+          <td>{{ plant.type }}</td>
+          <td>
+            <span class="growth-badge">{{ plant.growth_stage }}</span>
+          </td>
+          <td>
+            <span class="region-badge">{{ plant.region }}</span>
+          </td>
+          <td>
+            <div class="action-buttons">
+              <button class="delete-button" (click)="deletePlant(plant.id!)">
+                <span class="delete-icon">×</span> Delete
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <div class="empty-state" *ngIf="plants && plants.length === 0">
+      <p>No plants available. Create your first plant!</p>
+    </div>
+  </div>
+</div>

@@ -28,6 +28,11 @@ bootstrapApplication(AppComponent, {
         loadChildren: () => import('./app/features/monitoring/monitoring.module')
           .then(m => m.MonitoringModule)
       },
+      {
+        path: 'plants',
+        loadChildren: () => import('./app/features/plants/plants.module')
+          .then(m => m.PlantModule)
+      },
       { path: '', redirectTo: '/dashboard', pathMatch: 'full' }
     ])
   ]
