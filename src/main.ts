@@ -3,11 +3,25 @@ import { AppComponent } from './app/app.component';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
+import { provideStore, MetaReducer  } from '@ngrx/store';
+import { localStorageSync } from 'ngrx-store-localstorage';
+import { provideStoreDevtools } from '@ngrx/store-devtools';
+import { appReducer } from './app/state/reducers';
+
+
+export function localStorageSyncReducer(reducer: any) {
+  return localStorageSync({ keys: ['app'], rehydrate: true })(reducer);
+}
+
+const metaReducers: MetaReducer<any>[] = [localStorageSyncReducer];
+
 
 bootstrapApplication(AppComponent, {
   providers: [
     provideAnimations(),
     provideHttpClient(),
+    provideStore({ app: appReducer } , { metaReducers }),
+    provideStoreDevtools({ maxAge: 25 }),
     provideRouter([
       {
         path: 'dashboard',

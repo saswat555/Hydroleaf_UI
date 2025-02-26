@@ -1,12 +1,15 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
-import { CommonModule, NgIf, NgForOf, JsonPipe } from '@angular/common';
+import { CommonModule, NgIf, NgForOf } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { SharedStateService } from '../../services/shared-state.service';
-import {MatIconModule} from '@angular/material/icon'
+import { MatIconModule } from '@angular/material/icon';
+import { Store, select } from '@ngrx/store';
+import { AppState } from '../../state/state.model';
+import { setDevices } from '../../state/actions';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-dashboard',
@@ -26,11 +29,13 @@ import {MatIconModule} from '@angular/material/icon'
   ]
 })
 export class DashboardComponent implements OnInit {
-  devices: any[] = [];
+  devices$: Observable<any[]>;  // ✅ Using Observable from Store
   displayedColumns: string[] = ['id', 'name', 'http_endpoint', 'pump_configurations', 'actions'];
   loading: boolean = true;
 
-  constructor(private http: HttpClient, private sharedState: SharedStateService ) {}
+  constructor(private http: HttpClient, private store: Store<{ app: AppState }>) {
+    this.devices$ = this.store.pipe(select(state => state.app.devices));  // ✅ Get devices from store
+  }
 
   ngOnInit(): void {
     this.fetchDevices();
@@ -40,20 +45,17 @@ export class DashboardComponent implements OnInit {
     this.http.get<any[]>('http://localhost:8000/api/v1/devices').subscribe({
       next: (data) => {
         console.log('Devices fetched:', data);
-        this.devices = data;
+        this.store.dispatch(setDevices({ devices: data }));  // ✅ Save devices in NgRx state
         this.loading = false;
-        this.sharedState.setDevices(this.devices = data);
       },
       error: (err) => {
         console.error('Error fetching devices', err);
-        this.devices = [];
         this.loading = false;
       }
     });
   }
 
   viewDevice(id: number): void {
-    // Implement navigation or logic to view device details
     console.log('View device with ID:', id);
   }
 }

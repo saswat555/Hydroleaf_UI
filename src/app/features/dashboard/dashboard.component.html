@@ -14,74 +14,89 @@
     </div>
   </div>
 
-  <!-- Table Container -->
-  <div class="table-container" *ngIf="!loading && devices && devices.length">
-    <div class="table-responsive">
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>HTTP Endpoint</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let device of devices">
-            <td>{{ device.id }}</td>
-            <td>{{ device.name }}</td>
-            <td>{{ device.http_endpoint }}</td>
-            <td>
-              <button class="btn-view" (click)="viewDevice(device.id)">
-                <mat-icon>looks</mat-icon>
-                View
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+  <ng-container *ngIf="!loading && (devices$ | async) as devices">
 
-    <!-- Pump Configurations Grid -->
-    <div class="pump-configurations-section">
-      <h2 class="pump-section-title">Pump Configurations</h2>
-      <div class="pump-grid">
-        <div class="pump-card" *ngFor="let device of devices">
-          <div class="pump-card-header">
-            <i class="pump-icon lucide-flask-conical"></i>
-            <h3>{{ device.name }}</h3>
-            <span class="device-id">{{ device.id }}</span>
-          </div>
-          <div class="pump-card-content">
-            <div *ngIf="device.pump_configurations && device.pump_configurations.length; else noPump">
-              <div class="pump-item" *ngFor="let pump of device.pump_configurations">
-                <div class="pump-header">
-                  <i class="pump-number-icon lucide-droplet"></i>
-                  <span class="pump-number">Pump {{ pump.pump_number }}</span>
-                </div>
-                <div class="pump-details">
-                  <div class="chemical-name">{{ pump.chemical_name }}</div>
-                  <div class="chemical-description" *ngIf="pump.chemical_description">
-                    {{ pump.chemical_description }}
+    <div class="table-container" *ngIf=" devices.length">
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>HTTP Endpoint</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let device of (devices$ | async)">
+              <td>{{ device.id }}</td>
+              <td>{{ device.name }}</td>
+              <td>{{ device.http_endpoint }}</td>
+              <td>
+                <button class="btn-view" (click)="viewDevice(device.id)">
+                  <mat-icon>looks</mat-icon>
+                  View
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pump Configurations Grid -->
+      <div class="pump-configurations-section">
+        <h2 class="pump-section-title">Pump Configurations</h2>
+        <div class="pump-grid">
+          <div class="pump-card" *ngFor="let device of (devices$ | async)">
+            <div class="pump-card-header">
+              <i class="pump-icon lucide-flask-conical"></i>
+              <h3>{{ device.name }}</h3>
+              <span class="device-id">{{ device.id }}</span>
+            </div>
+            <div class="pump-card-content">
+              <div *ngIf="device.pump_configurations && device.pump_configurations.length; else noPump">
+                <div class="pump-item" *ngFor="let pump of device.pump_configurations">
+                  <div class="pump-header">
+                    <i class="pump-number-icon lucide-droplet"></i>
+                    <span class="pump-number">Pump {{ pump.pump_number }}</span>
+                  </div>
+                  <div class="pump-details">
+                    <div class="chemical-name">{{ pump.chemical_name }}</div>
+                    <div class="chemical-description" *ngIf="pump.chemical_description">
+                      {{ pump.chemical_description }}
+                    </div>
                   </div>
                 </div>
               </div>
+              <ng-template #noPump>
+                <div class="no-pump-data">
+                  <i class="lucide-alert-circle"></i>
+                  <span>No pump configurations available</span>
+                </div>
+              </ng-template>
             </div>
-            <ng-template #noPump>
-              <div class="no-pump-data">
-                <i class="lucide-alert-circle"></i>
-                <span>No pump configurations available</span>
-              </div>
-            </ng-template>
           </div>
         </div>
       </div>
     </div>
-  </div>
+  </ng-container>
 
   <!-- Empty State -->
-  <div class="empty-state" *ngIf="!loading && (!devices || devices.length === 0)">
-    <i class="empty-icon lucide-server"></i>
-    <p>No devices added yet.</p>
-  </div>
+  <ng-container *ngIf="!loading">
+    <div class="empty-state" *ngIf="(devices$ | async) as devices; else loadingTemplate">
+      <ng-container *ngIf="!devices || devices.length === 0">
+        <i class="empty-icon lucide-server"></i>
+        <p>No devices added yet.</p>
+      </ng-container>
+    </div>
+  </ng-container>
+
+  <ng-template #loadingTemplate>
+    <div class="loading-container" *ngIf="loading">
+      <div class="loading-content">
+        <i class="loading-spinner lucide-loader-2"></i>
+        <span>Loading devices...</span>
+      </div>
+    </div>
+  </ng-template>
 </div>

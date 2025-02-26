@@ -185,7 +185,7 @@
     symbol-observable "4.0.0"
     yargs "17.7.2"
 
-"@angular/common@^19.0.0 || ^20.0.0", "@angular/common@^19.1.0", "@angular/common@>=14", "@angular/common@>=19.0.0", "@angular/common@19.1.7":
+"@angular/common@^19.0.0 || ^20.0.0", "@angular/common@^19.0.5", "@angular/common@^19.1.0", "@angular/common@>=14", "@angular/common@>=19.0.0", "@angular/common@19.1.7":
   version "19.1.7"
   resolved "https://registry.npmjs.org/@angular/common/-/common-19.1.7.tgz"
   integrity sha512-MXfUGfWeesTQ12HXgeoVIXsS+r1jZxT2FkLQtqS+NRsRD4T1vlyvD7kTI+Ku1NAjdt3mB8TJ0cZHubvmml8I+Q==
@@ -213,7 +213,7 @@
   dependencies:
     tslib "^2.3.0"
 
-"@angular/core@^19.0.0 || ^20.0.0", "@angular/core@^19.1.0", "@angular/core@>=14", "@angular/core@>=19.0.0", "@angular/core@19.1.7":
+"@angular/core@^19.0.0", "@angular/core@^19.0.0 || ^20.0.0", "@angular/core@^19.0.5", "@angular/core@^19.1.0", "@angular/core@>=14", "@angular/core@>=19.0.0", "@angular/core@19.1.7":
   version "19.1.7"
   resolved "https://registry.npmjs.org/@angular/core/-/core-19.1.7.tgz"
   integrity sha512-P+e4ekJYWMFhWSzJav0R51bFAfUhIOmnqmG9mlI/ZONu2qcTTmyIG9AW5x1qhrMHEH42RaeK60RkKyqgcHaGDg==
@@ -1350,6 +1350,27 @@
     "@napi-rs/nice-win32-ia32-msvc" "1.0.1"
     "@napi-rs/nice-win32-x64-msvc" "1.0.1"
 
+"@ngrx/effects@^19.0.1":
+  version "19.0.1"
+  resolved "https://registry.npmjs.org/@ngrx/effects/-/effects-19.0.1.tgz"
+  integrity sha512-q+eztS1zN1247BtUZ41gxhumj4wMmvtfdSMfkFEuu6zuA57Vbx8zitEsw9boqPGtP5E4Cj5HKJLSJrl2kgwgcQ==
+  dependencies:
+    tslib "^2.0.0"
+
+"@ngrx/store-devtools@^19.0.1":
+  version "19.0.1"
+  resolved "https://registry.npmjs.org/@ngrx/store-devtools/-/store-devtools-19.0.1.tgz"
+  integrity sha512-afvr6NHh12LpYrOH9JKKEEi/z2DHq/wJ45hRn3mrcRDArQTKpTl7V2eu0dYgjGItSRSeJ2drzzKGjccL61PPSg==
+  dependencies:
+    tslib "^2.0.0"
+
+"@ngrx/store@^19.0.0", "@ngrx/store@^19.0.1", "@ngrx/store@19.0.1":
+  version "19.0.1"
+  resolved "https://registry.npmjs.org/@ngrx/store/-/store-19.0.1.tgz"
+  integrity sha512-+6eBLb+0rdJ856JRuKnvSzFxv1ISbYuX/OM12dMPf4wm+ddxjhyvi6tF8lPiNnaYb717PGNxXQzBFIGfIs4zGQ==
+  dependencies:
+    tslib "^2.0.0"
+
 "@ngtools/webpack@19.1.8":
   version "19.1.8"
   resolved "https://registry.npmjs.org/@ngtools/webpack/-/webpack-19.1.8.tgz"
@@ -1491,6 +1512,23 @@
   version "0.11.0"
   resolved "https://registry.npmjs.org/@pkgjs/parseargs/-/parseargs-0.11.0.tgz"
   integrity sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==
+
+"@reduxjs/angular-redux@^2.0.1":
+  version "2.0.1"
+  resolved "https://registry.npmjs.org/@reduxjs/angular-redux/-/angular-redux-2.0.1.tgz"
+  integrity sha512-BEXV7ekSAc8z0yI78omPd58/a9ZQ7v2c+B4I39ZXDt/HdogYsBQFC4Qbdb6bRKncleDOxdoCsYQ6n7KAdKMlHA==
+  dependencies:
+    tslib "^2.3.0"
+
+"@reduxjs/toolkit@^2.2.7", "@reduxjs/toolkit@^2.6.0":
+  version "2.6.0"
+  resolved "https://registry.npmjs.org/@reduxjs/toolkit/-/toolkit-2.6.0.tgz"
+  integrity sha512-mWJCYpewLRyTuuzRSEC/IwIBBkYg2dKtQas8mty5MaV2iXzcmicS3gW554FDeOvLnY3x13NIk8MB1e8wHO7rqQ==
+  dependencies:
+    immer "^10.0.3"
+    redux "^5.0.1"
+    redux-thunk "^3.1.0"
+    reselect "^5.1.0"
 
 "@rollup/rollup-win32-x64-msvc@4.30.1":
   version "4.30.1"
@@ -2674,6 +2712,11 @@ debug@2.6.9:
   dependencies:
     ms "2.0.0"
 
+deepmerge@^4.2.2:
+  version "4.3.1"
+  resolved "https://registry.npmjs.org/deepmerge/-/deepmerge-4.3.1.tgz"
+  integrity sha512-3sUqbMEc77XqpdNO7FRyRog+eW3ph+GYCbj+rK+uYyRMuwsVy0rMiVtPn+QJlKFvWP/1PYpapqYn0Me2knFn+A==
+
 default-browser-id@^5.0.0:
   version "5.0.0"
   resolved "https://registry.npmjs.org/default-browser-id/-/default-browser-id-5.0.0.tgz"
@@ -3610,6 +3653,11 @@ image-size@~0.5.0:
   version "0.5.5"
   resolved "https://registry.npmjs.org/image-size/-/image-size-0.5.5.tgz"
   integrity sha512-6TDAlDPZxUFCv+fuOkIoXT/V/f3Qbq8e37p+YOiYrUv3v9cc3/6x78VdfPgFVaB9dZYeLUfKgHRebpkm/oP2VQ==
+
+immer@^10.0.3:
+  version "10.1.1"
+  resolved "https://registry.npmjs.org/immer/-/immer-10.1.1.tgz"
+  integrity sha512-s2MPrmjovJcoMaHtx6K11Ra7oD05NT97w1IC5zpMkT6Atjr7H8LjaDd81iIxUYpMKSRRNMJE703M1Fhr/TctHw==
 
 immutable@^5.0.2:
   version "5.0.3"
@@ -4617,6 +4665,14 @@ ng2-charts@^8.0.0:
     lodash-es "^4.17.15"
     tslib "^2.3.0"
 
+ngrx-store-localstorage@^19.0.0:
+  version "19.0.0"
+  resolved "https://registry.npmjs.org/ngrx-store-localstorage/-/ngrx-store-localstorage-19.0.0.tgz"
+  integrity sha512-aONkwb2oW8BI9p6Hqyc6UvB8N51LgPSPg6ogg/ypYCQqRP/p8CDgDuYfkXyQktO1WS+2wKV4lPvGdjfb8dJwEw==
+  dependencies:
+    deepmerge "^4.2.2"
+    tslib "^2.3.0"
+
 ngx-mqtt@^17.0.0:
   version "17.0.0"
   resolved "https://registry.npmjs.org/ngx-mqtt/-/ngx-mqtt-17.0.0.tgz"
@@ -5225,6 +5281,16 @@ readdirp@~3.6.0:
   dependencies:
     picomatch "^2.2.1"
 
+redux-thunk@^3.1.0:
+  version "3.1.0"
+  resolved "https://registry.npmjs.org/redux-thunk/-/redux-thunk-3.1.0.tgz"
+  integrity sha512-NW2r5T6ksUKXCabzhL9z+h206HQw/NJkcLm1GPImRQ8IzfXwRGqjVhKJGauHirT0DAuyy6hjdnMZaRoAcy0Klw==
+
+redux@^5.0.0, redux@^5.0.1:
+  version "5.0.1"
+  resolved "https://registry.npmjs.org/redux/-/redux-5.0.1.tgz"
+  integrity sha512-M9/ELqF6fy8FwmkpnF0S3YKOqMyoWJ4+CS5Efg2ct3oY9daQvd/Pc71FpGZsVsbl3Cpb+IIcjBDUnnyBdQbq4w==
+
 reflect-metadata@^0.2.0:
   version "0.2.2"
   resolved "https://registry.npmjs.org/reflect-metadata/-/reflect-metadata-0.2.2.tgz"
@@ -5302,6 +5368,11 @@ requires-port@^1.0.0:
   version "1.0.0"
   resolved "https://registry.npmjs.org/requires-port/-/requires-port-1.0.0.tgz"
   integrity sha512-KigOCHcocU3XODJxsu8i/j8T9tzT4adHiecwORRQ0ZZFcp7ahwXuRU1m+yuO90C5ZUyGeGfocHDI14M3L3yDAQ==
+
+reselect@^5.1.0:
+  version "5.1.1"
+  resolved "https://registry.npmjs.org/reselect/-/reselect-5.1.1.tgz"
+  integrity sha512-K/BG6eIky/SBpzfHZv/dd+9JBFiS4SWV7FIujVyJRux6e45+73RaUHXLmIR1f7WOMaQ0U1km6qwklRQxpJJY0w==
 
 resolve-from@^4.0.0:
   version "4.0.0"
@@ -5418,7 +5489,7 @@ run-parallel@^1.1.9:
   dependencies:
     queue-microtask "^1.2.2"
 
-"rxjs@^6.5.3 || ^7.4.0", rxjs@~7.8.0, rxjs@7.8.1:
+"rxjs@^6.5.3 || ^7.4.0", "rxjs@^6.5.3 || ^7.5.0", rxjs@~7.8.0, rxjs@7.8.1:
   version "7.8.1"
   resolved "https://registry.npmjs.org/rxjs/-/rxjs-7.8.1.tgz"
   integrity sha512-AA3TVj+0A2iuIoQkWEK/tqFjBq2j+6PO6Y0zJcvzLAFhEFIO3HL0vls9hWLncZbAAbK0mar7oZ4V079I/qPMxg==
