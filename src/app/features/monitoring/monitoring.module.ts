@@ -17,6 +17,7 @@ import { MonitoringRoutingModule } from './monitoring-routing.module';
     CommonModule,
     HttpClientModule,
     MonitoringDashboardComponent, 
+    MonitoringRoutingModule,
     MatTableModule,
     MatButtonModule,
     MatIconModule,

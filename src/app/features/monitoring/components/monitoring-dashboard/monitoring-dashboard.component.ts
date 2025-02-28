@@ -135,7 +135,7 @@ export class MonitoringDashboardComponent implements OnInit {
       };
 
       const url = `http://localhost:8000/api/v1/dosing/llm-plan?device_id=${this.selectedDevice.id}`;
-
+      console.log(url)
       // Set planLoading to true and clear previous response
       this.planLoading = true;
       this.planResponse = "";
