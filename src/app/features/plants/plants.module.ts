@@ -1,5 +1,5 @@
 import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, NgForOf, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { PlantControlComponent } from './components/plant-control/plant-control.component';
@@ -13,7 +13,9 @@ import { PlantRoutingModule } from './plant-routing.module';
     CommonModule,
     FormsModule,
     PlantControlComponent,
-    PlantRoutingModule
+    PlantRoutingModule,
+    NgForOf, 
+    NgIf
   ],
   providers: [PlantService], // ✅ Register the PlantService
   exports: [PlantControlComponent] 

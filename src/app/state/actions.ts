@@ -8,3 +8,9 @@ export const clearPlants = createAction('[Plant] Clear Plants');
 // Actions for Devices
 export const setDevices = createAction('[Device] Set Devices', props<{ devices: any[] }>());
 export const clearDevices = createAction('[Device] Clear Devices');
+
+export const setPhTdsDevice = createAction(
+  '[Device] Set pH & TDS Data',
+  props<{ devices: { [key: number]: { pH: number; TDS: number } } }>()
+);
+

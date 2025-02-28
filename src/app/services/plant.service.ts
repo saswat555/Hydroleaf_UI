@@ -9,6 +9,7 @@ export interface Plant {
   growth_stage: string;
   seeding_date: string;
   region: string;
+  location: string;
   created_at?: string;
   updated_at?: string;
 }

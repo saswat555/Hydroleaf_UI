@@ -59,7 +59,7 @@ export class DeviceConfigurationDialogComponent implements OnInit {
       pump_configurations: this.fb.array([]),
       sensor_parameters: this.fb.group({
         calibration: [''],
-        measurement_interval: [30],
+        measurement_interval: ['30'],
         alert_thresholds: ['']
       })
     });

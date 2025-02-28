@@ -13,7 +13,7 @@ import { HttpClientModule } from '@angular/common/http';
   imports: [
     CommonModule,
     HttpClientModule,
-    DashboardComponent, // Import the standalone component
+    DashboardComponent,
     DashboardRoutingModule,
     MatTableModule,
     MatButtonModule,

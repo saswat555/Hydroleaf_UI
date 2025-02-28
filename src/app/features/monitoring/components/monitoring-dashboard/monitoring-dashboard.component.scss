@@ -1,0 +1,272 @@
+// Variables (using the ones from your existing SCSS)
+@use "sass:color";
+
+$color-blue-50: #eff6ff;
+$color-blue-100: #dbeafe;
+$color-blue-200: #bfdbfe;
+$color-blue-600: #2563eb;
+$color-blue-700: #1d4ed8;
+$color-blue-800: #1e40af;
+$color-gray-50: #f9fafb;
+$color-gray-100: #f3f4f6;
+$color-gray-200: #e5e7eb;
+$color-gray-300: #d1d5db;
+$color-gray-400: #9ca3af;
+$color-gray-500: #6b7280;
+$color-gray-600: #4b5563;
+$color-gray-700: #374151;
+$color-gray-900: #111827;
+$color-white: #ffffff;
+
+// Mixins
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin transition {
+  transition: all 0.2s ease-in-out;
+}
+
+// Table Styles
+.table-container {
+  margin: 1.5rem 0;
+  background: $color-white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  
+  &::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $color-gray-50;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $color-blue-100;
+    border-radius: 9999px;
+    
+    &:hover {
+        background: color.adjust($color-blue-100, $lightness: -5%);
+    }
+  }
+}
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+
+  th {
+    padding: 0.75rem 1.5rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: $color-gray-700;
+    background: $color-gray-100;
+    white-space: nowrap;
+    border-bottom: 2px solid $color-gray-200;
+  }
+
+  td {
+    padding: 1rem 1.5rem;
+    font-size: 0.875rem;
+    color: $color-gray-900;
+    border-top: 1px solid $color-gray-200;
+    vertical-align: middle;
+  }
+
+  tbody tr {
+    @include transition;
+    
+    &:hover {
+      background-color: $color-blue-50;
+    }
+  }
+}
+
+// Improved See Plan Button
+button[class]:not([class*="btn-refresh"]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  margin-top: 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: $color-white;
+  background: linear-gradient(to right, $color-blue-600, $color-blue-700);
+  border: none;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba($color-blue-700, 0.2), 0 2px 4px -1px rgba($color-blue-700, 0.06);
+  cursor: pointer;
+  @include transition;
+  
+  &:hover {
+    background: linear-gradient(to right, $color-blue-700, $color-blue-800);
+    box-shadow: 0 6px 10px -2px rgba($color-blue-700, 0.25), 0 4px 6px -1px rgba($color-blue-700, 0.1);
+    transform: translateY(-1px);
+  }
+  
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba($color-blue-600, 0.3), 0 4px 6px -1px rgba($color-blue-700, 0.1);
+  }
+  
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 4px -1px rgba($color-blue-700, 0.1);
+  }
+}
+
+
+.plan-section {
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: #f9f9f9;
+    width: 90%;
+    margin: auto;
+  }
+  
+  .form-group {
+    margin-bottom: 15px;
+  }
+  
+  textarea {
+    width: 90%;
+    height: 80px;
+    padding: 8px;
+  }
+  
+  button {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+  }
+  
+  button:hover {
+    background-color: #0056b3;
+  }
+  
+  .loading-spinner {
+    text-align: center;
+    margin-top: 10px;
+  }
+  
+  .plan-response {
+    background: #ffffff;
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 15px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    max-width: 100%;           /* Ensures it doesn't exceed the container's width */
+    overflow-x: auto;       
+  }
+  .plan-response pre {
+    white-space: pre-wrap;     /* Allows the text to wrap onto the next line */
+    word-break: break-word;    /* Breaks long words to prevent overflow */
+  }
+  
+  
+  // Flex container for the dropdowns
+  .dropdown-container {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    
+    .form-group {
+      flex: 1;
+      margin-bottom: 0;
+    }
+  }
+  
+  .form-group {
+    margin-bottom: 1.25rem;
+    
+    label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: $color-gray-700;
+      margin-bottom: 0.5rem;
+    }
+    
+    select, textarea {
+      width: 95%;
+      padding: 0.75rem;
+      border: 1px solid $color-gray-300;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      color: $color-gray-900;
+      background-color: $color-white;
+      transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+      
+      &:focus {
+        border-color: $color-blue-600;
+        outline: 0;
+        box-shadow: 0 0 0 3px rgba($color-blue-600, 0.1);
+      }
+    }
+    
+    select {
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      background-size: 1rem;
+      padding-right: 2.5rem;
+    }
+    
+    textarea {
+      min-height: 80px; // Reduced height
+      max-height: 80px; // Added max height
+      resize: none; // Prevent resizing
+    }
+  }
+  
+  .btn-check-plan {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: $color-white;
+    background: linear-gradient(to right, $color-blue-600, $color-blue-700);
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgba($color-blue-700, 0.2), 0 2px 4px -1px rgba($color-blue-700, 0.06);
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    
+    &:hover {
+      background: linear-gradient(to right, $color-blue-700, $color-blue-800);
+      box-shadow: 0 6px 10px -2px rgba($color-blue-700, 0.25), 0 4px 6px -1px rgba($color-blue-700, 0.1);
+      transform: translateY(-1px);
+    }
+    
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba($color-blue-600, 0.3), 0 4px 6px -1px rgba($color-blue-700, 0.1);
+    }
+    
+    &:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 4px -1px rgba($color-blue-700, 0.1);
+    }
+  }
+  

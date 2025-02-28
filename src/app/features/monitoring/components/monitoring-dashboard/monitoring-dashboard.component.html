@@ -1,1 +1,71 @@
-<p>monitoring-dashboard works!</p>
+<ng-container *ngIf="!loading && (devices$ | async) as devices">
+  <!-- Devices Table -->
+  <div class="table-container" *ngIf="devices.length">
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>HTTP Endpoint</th>
+            <th>PH</th>
+            <th>TDS</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let device of devices">
+            <td>{{ device.id }}</td>
+            <td>{{ device.name }}</td>
+            <td>{{ device.http_endpoint }}</td>
+            <td>{{ (deviceReadings$ | async)?.[device.id]?.pH | number:'1.2-2' }}</td>
+            <td>{{ (deviceReadings$ | async)?.[device.id]?.TDS | number:'1.2-2' }}</td>
+            <td>
+              <button class="btn-refresh" (click)="viewDevice(device.id)" [disabled]="viewingDevices[device.id]">
+                <mat-icon *ngIf="!viewingDevices[device.id]">refresh</mat-icon>
+                <mat-progress-spinner *ngIf="viewingDevices[device.id]" diameter="20" mode="indeterminate"></mat-progress-spinner>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  <!-- Plan Section -->
+  <div class="plan-section">
+    <h2>Create a Plan</h2>
+    
+    <div class="dropdown-container">
+      <div class="form-group">
+        <label>Select pH-TDS Sensor:</label>
+        <select [(ngModel)]="selectedDevice">
+          <option *ngFor="let device of devices" [ngValue]="device">{{ device.name }}</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label>Select Plant:</label>
+        <select [(ngModel)]="selectedPlant">
+          <option *ngFor="let plant of plants$ | async" [ngValue]="plant">{{ plant.name }}</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label>Enter Your Query:</label>
+      <textarea [(ngModel)]="userQuery" placeholder="Write your query..."></textarea>
+    </div>
+    
+    <!-- Check Plan Button -->
+    <button class="btn-check-plan" (click)="checkPlan()">Check Plan</button>
+    
+    <!-- Display "Thinking ..." while loading, or the plan response as it accumulates -->
+    <div class="plan-response">
+      <div *ngIf="planLoading">Thinking …</div>
+      <div *ngIf="!planLoading && planResponse">
+        <pre>{{ planResponse }}</pre>
+      </div>
+    </div>
+  </div>
+</ng-container>

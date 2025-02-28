@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';  
 import { FormsModule } from '@angular/forms';    
-import { HttpClientModule } from '@angular/common/http';
 import { PlantService, Plant } from '../../../../services/plant.service';
 import { HttpClient } from '@angular/common/http';
 import { setPlants } from '../../../../state/actions';
@@ -10,9 +9,8 @@ import { AppState } from '../../../../state/state.model';
 import { Observable } from 'rxjs';
 
 @Component({
-  selector: 'app-plant-control',
-  standalone: true,  
-  imports: [CommonModule, FormsModule, HttpClientModule],  
+  selector: 'app-plant-control', 
+  imports: [CommonModule, FormsModule],  
   templateUrl: './plant-control.component.html',
   styleUrl: './plant-control.component.scss'
 })
@@ -24,7 +22,8 @@ export class PlantControlComponent implements OnInit {
     type: '',
     growth_stage: '',
     seeding_date: '',
-    region: ''
+    region: '',
+    location: '',
   };
   isCreating: boolean = false;  
   isCreated: boolean = false;   
@@ -36,7 +35,7 @@ export class PlantControlComponent implements OnInit {
     private http: HttpClient,
     private store: Store<{ app: AppState }> 
   ) {
-    this.plants$ = this.store.pipe(select(state => state.app.plants)); // ✅ Properly selecting plants state
+    this.plants$ = this.store.pipe(select(state => state.app.plants));
   }
 
   ngOnInit(): void {
@@ -45,7 +44,7 @@ export class PlantControlComponent implements OnInit {
 
   fetchPlants(): void {
     this.plantService.getPlants().subscribe({
-      next: (data) => this.store.dispatch(setPlants({ plants: data })), // ✅ Updating state via NgRx
+      next: (data) => this.store.dispatch(setPlants({ plants: data })), 
       error: (error) => console.error('Error fetching plants:', error)
     });
   }
@@ -55,7 +54,7 @@ export class PlantControlComponent implements OnInit {
 
     this.plantService.createPlant(this.newPlant).subscribe({
       next: () => {
-        this.fetchPlants(); // ✅ Fetching updated data after creation
+        this.fetchPlants(); 
         this.isCreating = false;
         this.isCreated = true;
         this.resetForm();
@@ -100,7 +99,7 @@ export class PlantControlComponent implements OnInit {
 
   deletePlant(id: number): void {
     this.plantService.deletePlant(id).subscribe(() => {
-      this.fetchPlants(); // ✅ Fetching updated data after deletion
+      this.fetchPlants(); 
     });
   }
 
@@ -110,7 +109,8 @@ export class PlantControlComponent implements OnInit {
       type: '',
       growth_stage: '',
       seeding_date: '',
-      region: ''
+      region: '',
+      location: ''
     };
   }
 }
