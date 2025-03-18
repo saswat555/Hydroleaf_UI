@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "krishiverse-ui": {
+    "hydroleaf-ui": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -17,7 +17,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/krishiverse-ui",
+            "outputPath": "dist/hydroleaf-ui",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": [
@@ -65,10 +65,10 @@
           },
           "configurations": {
             "production": {
-              "buildTarget": "krishiverse-ui:build:production"
+              "buildTarget": "hydroleaf-ui:build:production"
             },
             "development": {
-              "buildTarget": "krishiverse-ui:build:development"
+              "buildTarget": "hydroleaf-ui:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -76,7 +76,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "buildTarget": "krishiverse-ui:build"
+            "buildTarget": "hydroleaf-ui:build"
           }
         },
         "test": {

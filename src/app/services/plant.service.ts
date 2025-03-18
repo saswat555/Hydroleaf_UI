@@ -1,3 +1,4 @@
+// src/app/services/plant.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -17,27 +18,25 @@ export interface Plant {
   providedIn: 'root'
 })
 export class PlantService {
-  private baseUrl = 'http://localhost:8000/api/v1/plants';  // Update this with your FastAPI URL
+  // Ensure baseUrl points exactly to "/api/v1/plants"
+  private baseUrl = 'http://localhost:8000/api/v1/plants';
 
   constructor(private http: HttpClient) {}
 
-  // ✅ GET: Fetch all plants
+  // Update: remove the extra "/plants" from the URL.
   getPlants(): Observable<Plant[]> {
-    return this.http.get<Plant[]>(`${this.baseUrl}/plants`);
+    return this.http.get<Plant[]>(`${this.baseUrl}`);
   }
 
-  // ✅ GET: Fetch a single plant by ID
   getPlantById(id: number): Observable<Plant> {
-    return this.http.get<Plant>(`${this.baseUrl}/plants/${id}`);
+    return this.http.get<Plant>(`${this.baseUrl}/${id}`);
   }
 
-  // ✅ POST: Create a new plant
   createPlant(plant: Plant): Observable<Plant> {
-    return this.http.post<Plant>(`${this.baseUrl}/plants`, plant);
+    return this.http.post<Plant>(`${this.baseUrl}`, plant);
   }
 
-  // ✅ DELETE: Remove a plant
   deletePlant(id: number): Observable<any> {
-    return this.http.delete(`${this.baseUrl}/plants/${id}`);
+    return this.http.delete(`${this.baseUrl}/${id}`);
   }
 }

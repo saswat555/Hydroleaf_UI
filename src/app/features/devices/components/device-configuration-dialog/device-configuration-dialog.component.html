@@ -37,12 +37,12 @@
             <mat-label>HTTP Endpoint</mat-label>
             <input matInput formControlName="http_endpoint" 
                    placeholder="000.000.000.000">
-            <mat-hint>Format: krishiverse/pump_controller_1/command</mat-hint>
+            <mat-hint>Format: hydroleaf/pump_controller_1/command</mat-hint>
             <mat-error *ngIf="configForm.get('http_endpoint')?.hasError('required')">
               HTTP Endpoint is required
             </mat-error>
             <mat-error *ngIf="configForm.get('http_endpoint')?.hasError('pattern')">
-              Invalid format. Use: krishiverse/device_id/command
+              Invalid format. Use: hydroleaf/device_id/command
             </mat-error>
           </mat-form-field>
         </div>

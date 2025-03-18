@@ -11,6 +11,7 @@ import { MatIcon } from '@angular/material/icon';
 import { DeviceConfigurationDialogComponent } from '../device-configuration-dialog/device-configuration-dialog.component';
 import { FormsModule } from '@angular/forms';
 
+
 /**
  * Minimal DeviceService to check a device by IP.
  */
@@ -19,11 +20,11 @@ import { FormsModule } from '@angular/forms';
 })
 export class DeviceService {
   constructor(private http: HttpClient) {}
-
+  apiUrl = "http://localhost:5000";
   checkDevice(ip: string): Observable<any> {
-    // Calls the backend endpoint /api/v1/devices/discover with ?ip=<ip>
-    return this.http.get('/api/v1/devices/discover', { params: { ip } });
-  }
+  // Ensure the query parameter is correctly passed
+  return this.http.get(`${this.apiUrl}/devices/discover`, { params: { ip } });
+}
 }
 
 @Component({

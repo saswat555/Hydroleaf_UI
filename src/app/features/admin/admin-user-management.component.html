@@ -1,0 +1,25 @@
+<div class="admin-user-management">
+  <h2>User Management</h2>
+  <div *ngIf="loading">Loading users...</div>
+  <table *ngIf="!loading">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Email</th>
+        <th>Role</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let user of users">
+        <td>{{ user.id }}</td>
+        <td>{{ user.email }}</td>
+        <td>{{ user.role }}</td>
+        <td>
+          <button mat-button color="primary" (click)="impersonate(user.id)">Impersonate</button>
+          <!-- Additional update and delete buttons can be added here -->
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

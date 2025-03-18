@@ -1,0 +1,10 @@
+<div class="farms-container">
+    <h1>Farms</h1>
+    <mat-card *ngFor="let farm of farms$ | async" class="farm-card">
+      <mat-card-title>{{ farm.name }}</mat-card-title>
+      <mat-card-content>
+        <p>Location: {{ farm.location }}</p>
+      </mat-card-content>
+    </mat-card>
+  </div>
+  

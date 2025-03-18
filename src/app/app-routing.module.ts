@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
+import { FirmwareUpdateComponent } from './features/firmware/firmware-update.component';
 
 const routes: Routes = [
   {
@@ -26,6 +27,10 @@ const routes: Routes = [
     path: 'plants',
     loadChildren: () => import('./features/plants/plants.module')
       .then(m => m.PlantModule)
+  },
+  {
+    path: 'firmware-update',
+    component: FirmwareUpdateComponent
   },
   { path: '', redirectTo: '/dashboard', pathMatch: 'full' }
 ];

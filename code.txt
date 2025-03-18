@@ -1,0 +1,4024 @@
+----- src/index.html -----
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>HydroleafUi</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body class="mat-typography">
+  <app-root></app-root>
+</body>
+</html>
+
+----- src/main.ts -----
+import { bootstrapApplication } from '@angular/platform-browser';
+import { AppComponent } from './app/app.component';
+import { provideAnimations } from '@angular/platform-browser/animations';
+import { provideHttpClient } from '@angular/common/http';
+import { provideRouter } from '@angular/router';
+import { provideStore, MetaReducer  } from '@ngrx/store';
+import { localStorageSync } from 'ngrx-store-localstorage';
+import { provideStoreDevtools } from '@ngrx/store-devtools';
+import { appReducer } from './app/state/reducers';
+
+
+export function localStorageSyncReducer(reducer: any) {
+  return localStorageSync({ keys: ['app'], rehydrate: true })(reducer);
+}
+
+const metaReducers: MetaReducer<any>[] = [localStorageSyncReducer];
+
+
+bootstrapApplication(AppComponent, {
+  providers: [
+    provideAnimations(),
+    provideHttpClient(),
+    provideStore({ app: appReducer } , { metaReducers }),
+    provideStoreDevtools({ maxAge: 25 }),
+    provideRouter([
+      {
+        path: 'dashboard',
+        loadChildren: () =>
+          import('./app/features/dashboard/dashboard.module').then(m => m.DashboardModule)
+      },
+      {
+        path: 'devices',
+        loadChildren: () =>
+          import('./app/features/devices/devices.module').then(m => m.DevicesModule)
+      },
+      {
+        path: 'dosing',
+        loadChildren: () =>
+          import('./app/features/dosing/dosing.module').then(m => m.DosingModule)
+      },
+      {
+        path: 'monitoring',
+        loadChildren: () =>
+          import('./app/features/monitoring/monitoring.module').then(m => m.MonitoringModule)
+      },
+      {
+        path: 'plants',
+        loadChildren: () =>
+          import('./app/features/plants/plants.module').then(m => m.PlantModule)
+      },
+      {
+        path: 'firmware-update',
+        loadComponent: () =>
+          import('./app/features/firmware/firmware-update.component').then(m => m.FirmwareUpdateComponent)
+      },
+      {
+        path: 'admin',
+        loadChildren: () =>
+          import('./app/features/admin/admin-user-management.component').then(m => m.AdminUserManagementComponent)
+      },      
+      {
+        path: 'farms',
+        loadChildren: () =>
+          import('./app/features/farms/farms.module').then(m => m.FarmsModule)
+      },
+      { path: '', redirectTo: '/dashboard', pathMatch: 'full' }
+    ])
+  ]
+}).catch(err => console.error(err));
+
+----- src/styles.scss -----
+/* Import pre-built theme */
+@import '@angular/material/prebuilt-themes/indigo-pink.css';
+
+/* Global styles */
+html, body { 
+  height: 100%; 
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+body {
+  background-color: #fafafa;
+}
+
+/* Material Icons */
+@import url("https://fonts.googleapis.com/icon?family=Material+Icons");
+
+/* Utility classes */
+.grid {
+  display: grid;
+  gap: 1rem;
+  
+  &.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  &.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  &.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.flex {
+  display: flex;
+  
+  &.center {
+    align-items: center;
+    justify-content: center;
+  }
+  
+  &.space-between {
+    justify-content: space-between;
+  }
+  
+  &.column {
+    flex-direction: column;
+  }
+}
+
+/* Card styles */
+.mat-mdc-card {
+  margin: 1rem;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+/* Form styles */
+.form-field-full {
+  width: 100%;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Spacing utilities */
+.m-1 { margin: 0.25rem; }
+.m-2 { margin: 0.5rem; }
+.m-3 { margin: 1rem; }
+.m-4 { margin: 1.5rem; }
+
+.p-1 { padding: 0.25rem; }
+.p-2 { padding: 0.5rem; }
+.p-3 { padding: 1rem; }
+.p-4 { padding: 1.5rem; }
+
+/* Container */
+.container {
+  padding: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Material overrides */
+.mat-mdc-button-base {
+  margin: 0.25rem !important;
+}
+
+.mat-mdc-form-field {
+  width: 100%;
+}
+
+/* Layout utilities */
+.full-width {
+  width: 100%;
+}
+
+.text-center {
+  text-align: center;
+}
+
+/* Responsive utilities */
+@media (max-width: 599px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+@media (min-width: 600px) {
+  .hide-desktop {
+    display: none !important;
+  }
+}
+
+----- src/app/app.component.html -----
+<!-- HTML -->
+<div class="app-container">
+  <mat-toolbar class="toolbar custom-toolbar">
+    <div class="toolbar-content">
+      <button mat-icon-button (click)="sidenav.toggle()">
+        <mat-icon>menu</mat-icon>
+      </button>
+      <span class="app-title">Hydroleaf</span>
+      <span class="toolbar-spacer"></span>
+      <button mat-icon-button>
+        <mat-icon>account_circle</mat-icon>
+      </button>
+    </div>
+    <div class="geometric-elements">
+      <div class="geo-shape shape1"></div>
+      <div class="geo-shape shape2"></div>
+      <div class="geo-shape shape3"></div>
+      <div class="geo-shape shape4"></div>
+    </div>
+  </mat-toolbar>
+
+  <mat-sidenav-container class="sidenav-container">
+    <mat-sidenav #sidenav [mode]="(isHandset$ | async) ? 'over' : 'side'"
+                [opened]="!(isHandset$ | async)">
+      <mat-nav-list>
+        <a mat-list-item routerLink="/dashboard">
+          <mat-icon>dashboard</mat-icon>
+          <span>Dashboard</span>
+        </a>
+        <a mat-list-item routerLink="/devices">
+          <mat-icon>devices</mat-icon>
+          <span>Devices</span>
+        </a>
+        <a mat-list-item routerLink="/monitoring">
+          <mat-icon>monitoring</mat-icon>
+          <span>Monitoring</span>
+        </a>
+        <a mat-list-item routerLink="/plants">
+          <mat-icon>eco</mat-icon>
+          <span>Plants</span>
+        </a>
+        <a mat-list-item routerLink="/dosing">
+          <mat-icon>opacity</mat-icon>
+          <span>Dosing</span>
+        </a>
+        <a mat-list-item routerLink="/firmware-update">
+          <mat-icon>system_update</mat-icon>
+          <span>Firmware Update</span>
+        </a>
+      </mat-nav-list>
+    </mat-sidenav>
+
+    <mat-sidenav-content>
+      <div class="content">
+        <router-outlet></router-outlet>
+      </div>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+</div>
+
+----- src/app/app-routing.module.ts -----
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { FirmwareUpdateComponent } from './features/firmware/firmware-update.component';
+
+const routes: Routes = [
+  {
+    path: 'dashboard',
+    loadChildren: () => import('../app/features/dashboard/dashboard.module')
+      .then(m => m.DashboardModule)
+  },
+  {
+    path: 'devices',
+    loadChildren: () => import('./features/devices/devices.module')
+      .then(m => m.DevicesModule)
+  },
+  {
+    path: 'dosing',
+    loadChildren: () => import('./features/dosing/dosing.module')
+      .then(m => m.DosingModule)
+  },
+  {
+    path: 'monitoring',
+    loadChildren: () => import('./features/monitoring/monitoring.module')
+      .then(m => m.MonitoringModule)
+  },
+  {
+    path: 'plants',
+    loadChildren: () => import('./features/plants/plants.module')
+      .then(m => m.PlantModule)
+  },
+  {
+    path: 'firmware-update',
+    component: FirmwareUpdateComponent
+  },
+  { path: '', redirectTo: '/dashboard', pathMatch: 'full' }
+];
+
+@NgModule({
+  imports: [RouterModule.forRoot(routes)],
+  exports: [RouterModule]
+})
+export class AppRoutingModule { }
+
+----- src/app/app.component.scss -----
+// Custom toolbar styling with geometric blue elements and sidebar width fixes
+
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+  
+  .custom-toolbar {
+    height: 80px;
+    padding: 0;
+    background: white;
+    color: #333;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  
+    .toolbar-content {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      height: 100%;
+      padding: 0 16px;
+      z-index: 2;
+      position: relative;
+  
+      // Fix for menu icon visibility
+      button {
+        mat-icon {
+          color: #333; // Darker color for better visibility on white background
+        }
+      }
+    }
+  
+    .app-title {
+      font-weight: bold;
+      font-size: 22px;
+      margin-left: 8px;
+      color: #333;
+    }
+  
+    .toolbar-spacer {
+      flex: 1 1 auto;
+    }
+  
+    .geometric-elements {
+      position: absolute;
+      right: 0;
+      top: 0;
+      height: 100%;
+      width: 40%;
+      z-index: 1;
+    }
+  
+    .geo-shape {
+      position: absolute;
+      height: 100%;
+    }
+  
+    .shape1 {
+      width: 100%;
+      right: 0;
+      background-color: #034859;
+      clip-path: polygon(30% 0, 100% 0, 100% 100%, 0 100%);
+    }
+  
+    .shape2 {
+      width: 80%;
+      right: 0;
+      background-color: #05668D;
+      clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%);
+    }
+  
+    .shape3 {
+      width: 60%;
+      right: 0;
+      background-color: #0A8EA0;
+      clip-path: polygon(0 0, 100% 0, 100% 100%, 15% 100%);
+    }
+  
+    .shape4 {
+      width: 35%;
+      right: 0;
+      background-color: #00B4D8;
+      clip-path: polygon(0 0, 100% 0, 100% 100%, 25% 100%);
+    }
+  }
+  
+  // Fix for sidebar width
+  mat-sidenav {
+    width: 250px; // Increased width for better visibility and usability
+    
+    mat-nav-list {
+      a {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        
+        mat-icon {
+          margin-right: 12px;
+        }
+        
+        span {
+          font-size: 16px;
+        }
+      }
+    }
+  }
+  
+  .sidenav-container {
+    flex: 1;
+  }
+  
+  .content {
+    padding: 20px;
+  }
+  
+  mat-icon {
+    color: #333;
+  }
+
+----- src/app/app.routes.ts -----
+import { Routes } from '@angular/router';
+
+export const routes: Routes = [
+  {
+    path: 'dashboard',
+    loadChildren: () => import('./features/dashboard/dashboard.module')
+      .then(m => m.DashboardModule)
+  },
+  {
+    path: 'devices',
+    loadChildren: () => import('./features/devices/devices.module')
+      .then(m => m.DevicesModule)
+  },
+  {
+    path: 'dosing',
+    loadChildren: () => import('./features/dosing/dosing.module')
+      .then(m => m.DosingModule)
+  },
+  {
+    path: 'monitoring',
+    loadChildren: () => import('./features/monitoring/monitoring.module')
+      .then(m => m.MonitoringModule)
+  },
+  {
+    path: 'plants',
+    loadChildren: () => import('./features/plants/plants.module')
+      .then(m => m.PlantModule)
+  },
+  { path: '', redirectTo: '/dashboard', pathMatch: 'full' }
+];
+
+----- src/app/app.component.spec.ts -----
+// import { TestBed } from '@angular/core/testing';
+// import { AppComponent } from './app.component';
+
+// describe('AppComponent', () => {
+//   beforeEach(async () => {
+//     await TestBed.configureTestingModule({
+//       imports: [AppComponent],
+//     }).compileComponents();
+//   });
+
+//   it('should create the app', () => {
+//     const fixture = TestBed.createComponent(AppComponent);
+//     const app = fixture.componentInstance;
+//     expect(app).toBeTruthy();
+//   });
+
+//   it(`should have the 'hydroleaf-ui' title`, () => {
+//     const fixture = TestBed.createComponent(AppComponent);
+//     const app = fixture.componentInstance;
+//     expect(app.title).toEqual('hydroleaf-ui');
+//   });
+
+//   it('should render title', () => {
+//     const fixture = TestBed.createComponent(AppComponent);
+//     fixture.detectChanges();
+//     const compiled = fixture.nativeElement as HTMLElement;
+//     expect(compiled.querySelector('h1')?.textContent).toContain('Hello, hydroleaf-ui');
+//   });
+// });
+
+
+----- src/app/app.component.ts -----
+// app.component.ts
+import { Component, ViewChild } from '@angular/core';
+import { MatSidenav } from '@angular/material/sidenav';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { Observable } from 'rxjs';
+import { map, shareReplay } from 'rxjs/operators';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatListModule } from '@angular/material/list';
+
+@Component({
+  selector: 'app-root',
+  standalone: true,
+  imports: [
+    CommonModule,
+    RouterModule,
+    MatToolbarModule,
+    MatSidenavModule,
+    MatButtonModule,
+    MatIconModule,
+    MatListModule
+  ],
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.scss']
+})
+export class AppComponent {
+  @ViewChild('sidenav') sidenav!: MatSidenav;
+
+  isHandset$: Observable<boolean>;
+
+  constructor(private breakpointObserver: BreakpointObserver) {
+    this.isHandset$ = this.breakpointObserver.observe(Breakpoints.Handset)
+      .pipe(
+        map(result => result.matches),
+        shareReplay()
+      );
+  }
+}
+
+
+----- src/app/app.config.ts -----
+import { ApplicationConfig } from '@angular/core';
+import { provideRouter } from '@angular/router';
+import { provideHttpClient } from '@angular/common/http';
+import { provideAnimations } from '@angular/platform-browser/animations';
+import { routes } from './app.routes';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideRouter(routes),
+    provideHttpClient(),
+    provideAnimations()
+  ]
+};
+
+----- src/app/app-config.service.ts -----
+import { Injectable } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
+
+export type ConnectionMode = 'LAN' | 'CLOUD';
+
+@Injectable({ providedIn: 'root' })
+export class AppConfigService {
+  // Default values; you can also read from localStorage
+  private connectionModeSubject = new BehaviorSubject<ConnectionMode>('LAN');
+  connectionMode$ = this.connectionModeSubject.asObservable();
+
+  // For theme toggling
+  private darkModeSubject = new BehaviorSubject<boolean>(false);
+  darkMode$ = this.darkModeSubject.asObservable();
+
+  get connectionMode(): ConnectionMode {
+    return this.connectionModeSubject.value;
+  }
+
+  setConnectionMode(mode: ConnectionMode) {
+    this.connectionModeSubject.next(mode);
+    localStorage.setItem('connectionMode', mode);
+  }
+
+  get darkMode(): boolean {
+    return this.darkModeSubject.value;
+  }
+
+  setDarkMode(isDark: boolean) {
+    this.darkModeSubject.next(isDark);
+    localStorage.setItem('darkMode', isDark.toString());
+  }
+}
+
+
+----- src/app/features/firmware/firmware-update.component.ts -----
+import { Component } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { AppConfigService } from '../../app-config.service';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+
+const LAN_URL = 'http://localhost:8000/api/v1';
+const CLOUD_URL = 'https://cloud.example.com/api/v1';
+
+@Component({
+  selector: 'app-firmware-update',
+  templateUrl: './firmware-update.component.html',
+  styleUrls: ['./firmware-update.component.scss'],
+  standalone: true,
+  imports: [CommonModule, FormsModule, MatButtonModule]
+})
+export class FirmwareUpdateComponent {
+  deviceId: number | null = null;
+  firmwareFile: File | null = null;
+  updateStatus: string = '';
+
+  constructor(private http: HttpClient, private config: AppConfigService) {}
+
+  // Use the connection mode from the config to determine the API URL
+  get apiUrl(): string {
+    return this.config.connectionMode === 'LAN' ? LAN_URL : CLOUD_URL;
+  }
+
+  onFileSelected(event: any) {
+    this.firmwareFile = event.target.files[0];
+  }
+
+  updateFirmware() {
+    if (!this.deviceId || !this.firmwareFile) {
+      this.updateStatus = 'Please select a device and a firmware file.';
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('device_id', this.deviceId.toString());
+    formData.append('firmware', this.firmwareFile);
+
+    // Call the firmware update endpoint (ensure backend supports this endpoint)
+    this.http.post(`${this.apiUrl}/devices/firmware-update`, formData)
+      .subscribe({
+        next: () => this.updateStatus = 'Firmware updated successfully!',
+        error: () => this.updateStatus = 'Firmware update failed.'
+      });
+  }
+}
+
+
+----- src/app/features/firmware/firmware-update.component.scss -----
+.firmware-container {
+    max-width: 500px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  
+    h2 {
+      margin-bottom: 1.5rem;
+      color: #333;
+    }
+  
+    .form-group {
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+  
+      label {
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #555;
+      }
+  
+      input[type="number"],
+      input[type="file"] {
+        width: 100%;
+        padding: 0.5rem;
+        font-size: 1rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        transition: border-color 0.2s ease-in-out;
+      }
+  
+      input[type="number"]:focus,
+      input[type="file"]:focus {
+        border-color: #3498db;
+        outline: none;
+      }
+    }
+  
+    button {
+      width: 100%;
+      margin-top: 1rem;
+    }
+  
+    .update-status {
+      margin-top: 1.5rem;
+      font-weight: 500;
+      color: #2ecc71;
+    }
+  }
+  
+
+----- src/app/features/firmware/firmware-update.component.html -----
+<div class="firmware-container">
+    <h2>Firmware Update</h2>
+  
+    <div class="form-group">
+      <label for="deviceId">Device ID:</label>
+      <input id="deviceId" type="number" [(ngModel)]="deviceId" placeholder="Enter Device ID" />
+    </div>
+  
+    <div class="form-group">
+      <label for="firmwareFile">Firmware File:</label>
+      <input id="firmwareFile" type="file" (change)="onFileSelected($event)" />
+    </div>
+  
+    <button mat-raised-button color="primary" (click)="updateFirmware()">
+      Update Firmware
+    </button>
+  
+    <div class="update-status" *ngIf="updateStatus">
+      {{ updateStatus }}
+    </div>
+  </div>
+  
+
+----- src/app/features/plants/plants.module.ts -----
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { PlantControlComponent } from './components/plant-control/plant-control.component';
+import { PlantService } from '../../services/plant.service'; 
+import { PlantRoutingModule } from './plant-routing.module';
+
+
+@NgModule({
+  declarations: [],
+  imports: [
+    CommonModule,
+    FormsModule,
+    PlantControlComponent,
+    PlantRoutingModule
+  ],
+  providers: [PlantService], // ✅ Register the PlantService
+  exports: [PlantControlComponent] 
+})
+export class PlantModule { }
+
+----- src/app/features/plants/plant-routing.module.ts -----
+export class PlantModule { }
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { PlantControlComponent } from './components/plant-control/plant-control.component';
+
+const routes: Routes = [
+  { path: '', component: PlantControlComponent }
+];
+
+@NgModule({
+  imports: [RouterModule.forChild(routes)],
+  exports: [RouterModule]
+})
+export class PlantRoutingModule {}
+
+----- src/app/features/plants/components/plant-control/plant-control.component.ts -----
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';  
+import { FormsModule } from '@angular/forms';    
+import { HttpClientModule } from '@angular/common/http';
+import { PlantService, Plant } from '../../../../services/plant.service';
+import { HttpClient } from '@angular/common/http';
+import { setPlants } from '../../../../state/actions';
+import { Store, select } from '@ngrx/store';
+import { AppState } from '../../../../state/state.model';
+import { Observable } from 'rxjs';
+
+@Component({
+  selector: 'app-plant-control',
+  standalone: true,  
+  imports: [CommonModule, FormsModule, HttpClientModule],  
+  templateUrl: './plant-control.component.html',
+  styleUrl: './plant-control.component.scss'
+})
+export class PlantControlComponent implements OnInit {
+  plants$: Observable<Plant[]>; // ✅ Using Observable for NgRx state
+
+  newPlant: Plant = {
+    name: '',
+    type: '',
+    growth_stage: '',
+    seeding_date: '',
+    region: ''
+  };
+  isCreating: boolean = false;  
+  isCreated: boolean = false;   
+  isLoading: boolean = false;   
+  llmResponse: any = null;      
+
+  constructor(
+    private plantService: PlantService, 
+    private http: HttpClient,
+    private store: Store<{ app: AppState }> 
+  ) {
+    this.plants$ = this.store.pipe(select(state => state.app.plants)); // ✅ Properly selecting plants state
+  }
+
+  ngOnInit(): void {
+    this.fetchPlants();
+  }
+
+  fetchPlants(): void {
+    this.plantService.getPlants().subscribe({
+      next: (data) => this.store.dispatch(setPlants({ plants: data })), // ✅ Updating state via NgRx
+      error: (error) => console.error('Error fetching plants:', error)
+    });
+  }
+
+  createPlant(): void {
+    this.isCreating = true;
+
+    this.plantService.createPlant(this.newPlant).subscribe({
+      next: () => {
+        this.fetchPlants(); // ✅ Fetching updated data after creation
+        this.isCreating = false;
+        this.isCreated = true;
+        this.resetForm();
+        setTimeout(() => (this.isCreated = false), 3000);
+      },
+      error: (error) => {
+        console.error('Error creating plant:', error);
+        this.isCreating = false;
+      }
+    });
+  }
+
+  checkDosing(): void {
+    if (!this.isCreated) return; 
+
+    this.isLoading = true;  
+    this.llmResponse = null; 
+
+    const sensorData = { ph: 6.8, tds: 450 };  
+    const plantProfile = {
+      plant_name: this.newPlant.name,
+      plant_type: this.newPlant.type,
+      growth_stage: this.newPlant.growth_stage,
+      seeding_date: this.newPlant.seeding_date,
+      weather_locale: "Local"
+    };
+
+    this.http.post("http://localhost:8000/api/v1/dosing/llm-request", {
+      sensor_data: sensorData,
+      plant_profile: plantProfile
+    }).subscribe(
+      (response) => {
+        this.llmResponse = response;
+        this.isLoading = false;
+      },
+      (error) => {
+        console.error('Error calling LLM:', error);
+        this.isLoading = false;
+      }
+    );
+  }
+
+  deletePlant(id: number): void {
+    this.plantService.deletePlant(id).subscribe(() => {
+      this.fetchPlants(); // ✅ Fetching updated data after deletion
+    });
+  }
+
+  resetForm(): void {
+    this.newPlant = {
+      name: '',
+      type: '',
+      growth_stage: '',
+      seeding_date: '',
+      region: ''
+    };
+  }
+}
+
+
+----- src/app/features/plants/components/plant-control/plant-control.component.spec.ts -----
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { PlantControlComponent } from './plant-control.component';
+
+describe('PlantControlComponent', () => {
+  let component: PlantControlComponent;
+  let fixture: ComponentFixture<PlantControlComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [PlantControlComponent]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(PlantControlComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+
+
+----- src/app/features/plants/components/plant-control/plant-control.component.scss -----
+.plants-container {
+  font-family: 'Roboto', sans-serif;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px;
+  color: #2c3e50;
+}
+
+.plants-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+  
+  h2 {
+    font-size: 28px;
+    color: #2c3e50;
+    margin: 0;
+    position: relative;
+    padding-bottom: 8px;
+    
+    &:after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 60px;
+      height: 3px;
+      background-color: #3498db;
+    }
+  }
+}
+
+// Button styles
+.primary-button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(52, 152, 219, 0.3);
+  
+  &:hover {
+    background-color: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.4);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.action-button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  
+  &:hover {
+    background-color: #2980b9;
+  }
+}
+
+.submit-button {
+  background-color: #2ecc71;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background-color: #27ae60;
+  }
+}
+
+.delete-button {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  
+  .delete-icon {
+    font-size: 18px;
+    margin-right: 4px;
+  }
+  
+  &:hover {
+    background-color: #c0392b;
+  }
+}
+
+// Form styles
+.create-form-container {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  
+  h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #2c3e50;
+    font-size: 20px;
+  }
+}
+
+.plant-form {
+  .form-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 10px;
+    
+    @media (max-width: 768px) {
+      flex-direction: column;
+      gap: 0;
+    }
+  }
+  
+  .form-group {
+    flex: 1;
+    margin-bottom: 16px;
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #34495e;
+    }
+    
+    input {
+      width: 70%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      
+      &:focus {
+        border-color: #3498db;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+      }
+    }
+  }
+  
+  .form-actions {
+    margin-top: 24px;
+    text-align: right;
+  }
+}
+
+// Success message
+.success-message {
+  display: flex;
+  align-items: center;
+  background-color: #f1f9f1;
+  border-left: 4px solid #2ecc71;
+  padding: 16px 20px;
+  border-radius: 4px;
+  margin-bottom: 30px;
+  
+  .success-icon {
+    font-size: 20px;
+    margin-right: 10px;
+  }
+  
+  p {
+    margin: 0;
+    margin-right: 20px;
+    font-weight: 500;
+    color: #27ae60;
+  }
+}
+
+// Loading
+.loading-container {
+  display: flex;
+  align-items: center;
+  background-color: #f8f9fa;
+  padding: 16px 20px;
+  border-radius: 4px;
+  border-left: 4px solid #3498db;
+  margin-bottom: 30px;
+  
+  .loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(52, 152, 219, 0.3);
+    border-radius: 50%;
+    border-top-color: #3498db;
+    animation: spin 1s linear infinite;
+    margin-right: 15px;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  p {
+    margin: 0;
+    color: #7f8c8d;
+  }
+}
+
+// Response container
+.response-container {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  
+  h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #2c3e50;
+  }
+  
+  .response-content {
+    background-color: #f1f2f6;
+    padding: 15px;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-family: monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    border: 1px solid #dfe4ea;
+  }
+}
+
+// Table styles
+.table-container {
+  overflow-x: auto;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.plants-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  
+  th {
+    background-color: #3498db;
+    color: white;
+    text-align: left;
+    padding: 12px 16px;
+    font-weight: 500;
+    position: sticky;
+    top: 0;
+    
+    &:first-child {
+      border-top-left-radius: 8px;
+    }
+    
+    &:last-child {
+      border-top-right-radius: 8px;
+    }
+  }
+  
+  td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #ecf0f1;
+    vertical-align: middle;
+  }
+  
+  tr:last-child td {
+    border-bottom: none;
+  }
+  
+  .even-row {
+    background-color: #f8f9fa;
+  }
+  
+  tr:hover {
+    background-color: #ecf0f1;
+  }
+  
+  .growth-badge {
+    display: inline-block;
+    background-color: #f39c12;
+    color: white;
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 12px;
+  }
+  
+  .region-badge {
+    display: inline-block;
+    background-color: #9b59b6;
+    color: white;
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 12px;
+  }
+  
+  .action-buttons {
+    display: flex;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #7f8c8d;
+  
+  p {
+    margin: 0;
+    font-size: 16px;
+  }
+}
+
+----- src/app/features/plants/components/plant-control/plant-control.component.html -----
+<div class="plants-container">
+  <header class="plants-header">
+    <h2>Plants List</h2>
+    <button class="primary-button" *ngIf="!isCreated" (click)="isCreating = !isCreating">
+      {{ isCreating ? 'Cancel' : 'Create New Plant' }}
+    </button>
+  </header>
+
+  <div class="create-form-container" *ngIf="isCreating">
+    <h3>Create a New Plant</h3>
+    <form (ngSubmit)="createPlant()" class="plant-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="plantName">Name:</label>
+          <input id="plantName" type="text" [(ngModel)]="newPlant.name" name="name" required>
+        </div>
+        <div class="form-group">
+          <label for="plantType">Type:</label>
+          <input id="plantType" type="text" [(ngModel)]="newPlant.type" name="type" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="plantGrowthStage">Growth Stage:</label>
+          <input id="plantGrowthStage" type="text" [(ngModel)]="newPlant.growth_stage" name="growth_stage" required>
+        </div>
+        <div class="form-group">
+          <label for="plantSeedingDate">Seeding Date:</label>
+          <input id="plantSeedingDate" type="date" [(ngModel)]="newPlant.seeding_date" name="seeding_date" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="plantRegion">Region:</label>
+        <input id="plantRegion" type="text" [(ngModel)]="newPlant.region" name="region" required>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="submit-button">Submit</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="success-message" *ngIf="isCreated && !isLoading">
+    <div class="success-icon">✅</div>
+    <p>Plant created successfully!</p>
+    <button class="action-button" (click)="checkDosing()">Check Dosing</button>
+  </div>
+
+  <div class="loading-container" *ngIf="isLoading">
+    <div class="loading-spinner"></div>
+    <p>LLM is thinking... (This may take up to 2 minutes)</p>
+  </div>
+
+  <div class="response-container" *ngIf="llmResponse">
+    <h3>LLM Dosing Recommendation:</h3>
+    <pre class="response-content">{{ llmResponse | json }}</pre>
+  </div>
+
+  <div class="table-container">
+    <table class="plants-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Growth Stage</th>
+          <th>Region</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let plant of (plants$ | async); let even = even" [ngClass]="{'even-row': even}">
+          <td>{{ plant.id }}</td>
+          <td>{{ plant.name }}</td>
+          <td>{{ plant.type }}</td>
+          <td>
+            <span class="growth-badge">{{ plant.growth_stage }}</span>
+          </td>
+          <td>
+            <span class="region-badge">{{ plant.region }}</span>
+          </td>
+          <td>
+            <div class="action-buttons">
+              <button class="delete-button" (click)="deletePlant(plant.id!)">
+                <span class="delete-icon">×</span> Delete
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <ng-container *ngif="(plants$ | async) as plants">
+      <div class="empty-state" *ngIf=" plants.length === 0">
+        <p>No plants available. Create your first plant!</p>
+      </div>
+    </ng-container>
+  </div>
+</div>
+
+----- src/app/features/admin/admin-user-management.component.html -----
+<div class="admin-user-management">
+  <h2>User Management</h2>
+  <div *ngIf="loading">Loading users...</div>
+  <table *ngIf="!loading">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Email</th>
+        <th>Role</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let user of users">
+        <td>{{ user.id }}</td>
+        <td>{{ user.email }}</td>
+        <td>{{ user.role }}</td>
+        <td>
+          <button mat-button color="primary" (click)="impersonate(user.id)">Impersonate</button>
+          <!-- Additional update and delete buttons can be added here -->
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+
+----- src/app/features/admin/admin-user-management.module.ts -----
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { AdminUserManagementComponent } from './admin-user-management.component';
+import { CommonModule } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
+import { MatTableModule } from '@angular/material/table';
+
+const routes: Routes = [
+  { path: '', component: AdminUserManagementComponent }
+];
+
+@NgModule({
+  imports: [
+    CommonModule,
+    RouterModule.forChild(routes),
+    MatButtonModule,
+    MatTableModule,
+    AdminUserManagementComponent  // Import the standalone component here
+  ]
+})
+export class AdminUserManagementModule { }
+
+
+----- src/app/features/admin/admin-user-management.component.scss -----
+.admin-user-management {
+    padding: 20px;
+  
+    h2 {
+      margin-bottom: 20px;
+    }
+  
+    table {
+      width: 100%;
+      border-collapse: collapse;
+  
+      th, td {
+        padding: 12px;
+        border: 1px solid #ccc;
+        text-align: left;
+      }
+  
+      th {
+        background-color: #f5f5f5;
+      }
+    }
+  }
+  
+
+----- src/app/features/admin/admin-user-management.component.ts -----
+// src/app/features/admin/admin-user-management.component.ts
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';  // Needed for *ngIf, *ngFor, etc.
+import { MatButtonModule } from '@angular/material/button';
+import { MatTableModule } from '@angular/material/table';
+import { HttpClient } from '@angular/common/http';
+import { AuthService, User } from '../../services/auth.service';
+import { Router } from '@angular/router';
+
+@Component({
+  selector: 'app-admin-user-management',
+  standalone: true,
+  imports: [CommonModule, MatButtonModule, MatTableModule],
+  templateUrl: './admin-user-management.component.html',
+  styleUrls: ['./admin-user-management.component.scss']
+})
+export class AdminUserManagementComponent implements OnInit {
+  users: User[] = [];
+  loading = true;
+  baseUrl = 'http://localhost:8000/api/v1/admin/users';
+
+  constructor(private http: HttpClient, private authService: AuthService, private router: Router) {}
+
+  ngOnInit(): void {
+    this.fetchUsers();
+  }
+
+  fetchUsers(): void {
+    this.http.get<User[]>(`${this.baseUrl}/`).subscribe({
+      next: (data) => {
+        this.users = data;
+        this.loading = false;
+      },
+      error: (err) => {
+        console.error('Error fetching users:', err);
+        this.loading = false;
+      }
+    });
+  }
+
+  impersonate(userId: number): void {
+    this.http.post<{ access_token: string }>(`${this.baseUrl}/impersonate/${userId}`, {}).subscribe({
+      next: (response) => {
+        // Save the new token and navigate to the dashboard as the impersonated user.
+        localStorage.setItem('access_token', response.access_token);
+        this.router.navigate(['/dashboard']);
+      },
+      error: (err) => console.error('Impersonation failed:', err)
+    });
+  }
+}
+
+
+----- src/app/features/farms/farms.component.ts -----
+// src/app/features/farms/farms.component.ts
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MatCardModule } from '@angular/material/card';
+import { FarmService, Farm } from '../../services/farm.service';
+import { Observable } from 'rxjs';
+
+@Component({
+  selector: 'app-farm',
+  standalone: true,
+  imports: [CommonModule, MatCardModule],
+  templateUrl: './farms.component.html',
+  styleUrls: ['./farms.component.scss']
+})
+export class FarmComponent {
+  farms$: Observable<Farm[]>;
+
+  constructor(private farmService: FarmService) {
+    this.farms$ = this.farmService.getFarms();
+  }
+}
+
+
+----- src/app/features/farms/farms.component.html -----
+<div class="farms-container">
+    <h1>Farms</h1>
+    <mat-card *ngFor="let farm of farms$ | async" class="farm-card">
+      <mat-card-title>{{ farm.name }}</mat-card-title>
+      <mat-card-content>
+        <p>Location: {{ farm.location }}</p>
+      </mat-card-content>
+    </mat-card>
+  </div>
+  
+
+----- src/app/features/farms/farms.component.scss -----
+.farms-container {
+    padding: 20px;
+  
+    .farm-card {
+      margin-bottom: 20px;
+    }
+  }
+  
+
+----- src/app/features/farms/farms.module.ts -----
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { FarmComponent } from './farms.component';
+import { CommonModule } from '@angular/common';
+import { MatCardModule } from '@angular/material/card';
+
+const routes: Routes = [
+  { path: '', component: FarmComponent }
+];
+
+@NgModule({
+  imports: [
+    CommonModule,
+    RouterModule.forChild(routes),
+    MatCardModule,
+    FarmComponent  // Import standalone component here instead of declaring it
+  ]
+})
+export class FarmsModule { }
+
+
+----- src/app/features/dashboard/dashboard.component.html -----
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <div class="header-content">
+      <i class="header-icon lucide-server"></i>
+      <h1>Device Dashboard</h1>
+      <!-- Admin-only: user filter dropdown -->
+      <ng-container *ngIf="isAdmin">
+        <select (change)="onUserChange($event)" style="margin-left: 20px;">
+          <option value="">All Users</option>
+          <option *ngFor="let user of users" [value]="user.id">{{ user.email }}</option>
+        </select>
+      </ng-container>
+      <!-- Admin-only: button for auto discovery -->
+      <ng-container *ngIf="isAdmin">
+        <button mat-raised-button color="primary" style="margin-left: 20px;" (click)="autoDiscoverDevices()">
+          Auto Discover Devices
+        </button>
+      </ng-container>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="loading">
+    <div class="loading-content">
+      <i class="loading-spinner lucide-loader-2"></i>
+      <span>Loading devices...</span>
+    </div>
+  </div>
+
+  <ng-container *ngIf="!loading && (devices$ | async) as devices">
+    <div class="table-container" *ngIf="devices.length > 0; else emptyState">
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th *ngIf="isAdmin">Owner</th>
+              <th>Status</th>
+              <th>Version</th>
+              <th>HTTP Endpoint</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let device of devices">
+              <td>{{ device.id }}</td>
+              <td>{{ device.name }}</td>
+              <td *ngIf="isAdmin">{{ device.owner_email || 'N/A' }}</td>
+              <td>{{ device.status || 'N/A' }}</td>
+              <td>{{ device.version || 'N/A' }}</td>
+              <td>{{ device.http_endpoint }}</td>
+              <td>
+                <button mat-button (click)="viewDevice(device.id)">
+                  <mat-icon>looks</mat-icon> View
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-template #emptyState>
+    <div class="empty-state">
+      <i class="empty-icon lucide-server"></i>
+      <p>No devices available.</p>
+    </div>
+  </ng-template>
+</div>
+
+
+----- src/app/features/dashboard/dashboard.component.scss -----
+@use "sass:color";
+// Variables
+$color-blue-50: #eff6ff;
+$color-blue-100: #dbeafe;
+$color-blue-200: #bfdbfe;
+$color-blue-600: #2563eb;
+$color-blue-700: #1d4ed8;
+$color-blue-800: #1e40af;
+$color-gray-50: #f9fafb;
+$color-gray-100: #f3f4f6;
+$color-gray-200: #e5e7eb;
+$color-gray-300: #d1d5db;
+$color-gray-400: #9ca3af;
+$color-gray-500: #6b7280;
+$color-gray-600: #4b5563;
+$color-gray-700: #374151;
+$color-gray-900: #111827;
+$color-white: #ffffff;
+
+// Mixins
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin transition {
+  transition: all 0.2s ease-in-out;
+}
+
+// Base Styles
+.dashboard-container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, $color-blue-50 0%, $color-white 100%);
+  padding: 2rem 1rem;
+
+  @media (min-width: 640px) {
+    padding: 2rem;
+  }
+}
+
+// Header
+.dashboard-header {
+  max-width: 80rem;
+  margin: 0 auto 2rem;
+  
+  .header-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .header-icon {
+    width: 2rem;
+    height: 2rem;
+    color: $color-blue-600;
+  }
+
+  h1 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: $color-gray-900;
+  }
+}
+
+// Loading State
+.loading-container {
+  @include flex-center;
+  padding: 3rem 0;
+
+  .loading-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: $color-blue-600;
+    font-weight: 500;
+  }
+
+  .loading-spinner {
+    width: 1.5rem;
+    height: 1.5rem;
+    animation: spin 1s linear infinite;
+  }
+}
+
+// Table Styles
+.table-container {
+  margin-top: 1rem;
+  background: $color-white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  
+  &::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $color-gray-50;
+    border-bottom-right-radius: 0.5rem;
+    border-bottom-left-radius: 0.5rem;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $color-blue-100;
+    border-radius: 9999px;
+    
+    &:hover {
+      background: color.adjust($color-blue-100, $lightness: -5%);
+    }
+  }
+}
+
+table {
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+
+  th {
+    padding: 0.75rem 1.5rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    color: $color-blue-800;
+    background: $color-blue-50;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 1rem 1.5rem;
+    font-size: 0.875rem;
+    color: $color-gray-900;
+    border-top: 1px solid $color-gray-200;
+  }
+
+  tbody tr {
+    @include transition;
+    
+    &:hover {
+      background-color: $color-blue-50;
+    }
+  }
+}
+
+// Pump Configurations Section
+.pump-configurations-section {
+  padding: 2rem;
+  border-top: 1px solid $color-gray-200;
+}
+
+.pump-section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: $color-gray-900;
+  margin-bottom: 1.5rem;
+}
+
+.pump-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.pump-card {
+  background: $color-white;
+  border: 1px solid $color-gray-200;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  @include transition;
+
+  &:hover {
+    border-color: $color-blue-200;
+    box-shadow: 0 4px 6px -1px rgba($color-blue-600, 0.1),
+                0 2px 4px -1px rgba($color-blue-600, 0.06);
+  }
+}
+
+.pump-card-header {
+  padding: 1rem;
+  background: $color-blue-50;
+  border-bottom: 1px solid $color-blue-100;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  .pump-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: $color-blue-600;
+  }
+
+  h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: $color-gray-900;
+    margin: 0;
+  }
+
+  .device-id {
+    font-size: 0.75rem;
+    color: $color-gray-500;
+    margin-left: auto;
+  }
+}
+
+.pump-card-content {
+  padding: 1rem;
+}
+
+.pump-item {
+  padding: 0.75rem;
+  background: $color-gray-50;
+  border-radius: 0.375rem;
+  margin-bottom: 0.75rem;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.pump-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+
+  .pump-number-icon {
+    width: 1rem;
+    height: 1rem;
+    color: $color-blue-600;
+  }
+
+  .pump-number {
+    font-weight: 500;
+    color: $color-gray-700;
+  }
+}
+
+.pump-details {
+  padding-left: 1.5rem;
+
+  .chemical-name {
+    font-weight: 500;
+    color: $color-gray-900;
+  }
+
+  .chemical-description {
+    font-size: 0.875rem;
+    color: $color-gray-500;
+    margin-top: 0.25rem;
+  }
+}
+
+.no-pump-data {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: $color-gray-400;
+  font-size: 0.875rem;
+  padding: 1rem;
+  background: $color-gray-50;
+  border-radius: 0.375rem;
+
+  i {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}
+
+// Button Styles
+.btn-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  color: $color-blue-600;
+  background: transparent;
+  border: 1px solid $color-blue-600;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  @include transition;
+
+  i {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  &:hover {
+    background: $color-blue-50;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px $color-white, 0 0 0 4px rgba($color-blue-600, 0.3);
+  }
+}
+
+// Empty State
+.empty-state {
+  margin-top: 1rem;
+  padding: 2rem;
+  text-align: center;
+  background: $color-white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+
+  .empty-icon {
+    width: 3rem;
+    height: 3rem;
+    color: $color-gray-400;
+    margin-bottom: 0.75rem;
+  }
+
+  p {
+    color: $color-gray-500;
+  }
+}
+
+// Animation
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+// Variables
+$color-blue-50: #eff6ff;
+$color-blue-100: #dbeafe;
+$color-blue-200: #bfdbfe;
+$color-blue-600: #2563eb;
+$color-blue-700: #1d4ed8;
+$color-blue-800: #1e40af;
+$color-gray-50: #f9fafb;
+$color-gray-100: #f3f4f6;
+$color-gray-200: #e5e7eb;
+$color-gray-300: #d1d5db;
+$color-gray-400: #9ca3af;
+$color-gray-500: #6b7280;
+$color-gray-600: #4b5563;
+$color-gray-700: #374151;
+$color-gray-900: #111827;
+$color-white: #ffffff;
+
+// Mixins
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin transition {
+  transition: all 0.2s ease-in-out;
+}
+
+// Base Styles
+.dashboard-container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, $color-blue-50 0%, $color-white 100%);
+  padding: 2rem 1rem;
+
+  @media (min-width: 640px) {
+    padding: 2rem;
+  }
+}
+
+// Header
+.dashboard-header {
+  max-width: 80rem;
+  margin: 0 auto 2rem;
+
+  .header-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .header-icon {
+    width: 2rem;
+    height: 2rem;
+    color: $color-blue-600;
+  }
+
+  h1 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: $color-gray-900;
+  }
+}
+
+// Loading State
+.loading-container {
+  @include flex-center;
+  padding: 3rem 0;
+
+  .loading-content {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: $color-blue-600;
+    font-weight: 500;
+  }
+
+  .loading-spinner {
+    width: 1.5rem;
+    height: 1.5rem;
+    animation: spin 1s linear infinite;
+  }
+}
+
+// Table Styles
+.table-container {
+  margin-top: 1rem;
+  background: $color-white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.table-responsive {
+  overflow-x: auto;
+
+  &::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $color-gray-50;
+    border-bottom-right-radius: 0.5rem;
+    border-bottom-left-radius: 0.5rem;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $color-blue-100;
+    border-radius: 9999px;
+
+    &:hover {
+      background: color.adjust($color-blue-100, $lightness: -5%);
+    }
+  }
+}
+
+table {
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+
+  th {
+    padding: 0.75rem 1.5rem;
+    text-align: left;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    color: $color-blue-800;
+    background: $color-blue-50;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 1rem 1.5rem;
+    font-size: 0.875rem;
+    color: $color-gray-900;
+    border-top: 1px solid $color-gray-200;
+  }
+
+  tbody tr {
+    @include transition;
+
+    &:hover {
+      background-color: $color-blue-50;
+    }
+  }
+}
+
+// Empty State
+.empty-state {
+  margin-top: 1rem;
+  padding: 2rem;
+  text-align: center;
+  background: $color-white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+
+  .empty-icon {
+    width: 3rem;
+    height: 3rem;
+    color: $color-gray-400;
+    margin-bottom: 0.75rem;
+  }
+
+  p {
+    color: $color-gray-500;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+----- src/app/features/dashboard/dashboard-routing.module.ts -----
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { DashboardComponent } from './dashboard.component';
+
+const routes: Routes = [
+  { path: '', component: DashboardComponent }
+];
+
+@NgModule({
+  imports: [RouterModule.forChild(routes)],
+  exports: [RouterModule]
+})
+export class DashboardRoutingModule {}
+
+
+----- src/app/features/dashboard/dashboard.module.ts -----
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { DashboardComponent } from './dashboard.component';
+import { DashboardRoutingModule } from './dashboard-routing.module';
+import { MatTableModule } from '@angular/material/table';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import {MatIconModule} from '@angular/material/icon';
+import { HttpClientModule } from '@angular/common/http';
+
+@NgModule({
+  imports: [
+    CommonModule,
+    HttpClientModule,
+    DashboardComponent, // Import the standalone component
+    DashboardRoutingModule,
+    MatTableModule,
+    MatButtonModule,
+    MatIconModule,
+    MatCardModule,
+    MatProgressSpinnerModule
+  ]
+})
+export class DashboardModule {}
+
+
+----- src/app/features/dashboard/dashboard.component.ts -----
+import { Component, OnInit } from '@angular/core';
+import { CommonModule, NgIf, NgForOf } from '@angular/common';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTableModule } from '@angular/material/table';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
+import { Store, select } from '@ngrx/store';
+import { AppState } from '../../state/state.model';
+import { setDevices } from '../../state/actions';
+import { Observable } from 'rxjs';
+import { Device } from '../devices/device.interface';
+import { DeviceService } from '../../services/device.service';
+import { AuthService } from '../../services/auth.service';
+
+@Component({
+  selector: 'app-dashboard',
+  templateUrl: './dashboard.component.html',
+  styleUrls: ['./dashboard.component.scss'],
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatProgressSpinnerModule,
+    MatTableModule,
+    MatButtonModule,
+    MatIconModule,
+    MatCardModule,
+    NgIf,
+    NgForOf
+  ]
+})
+export class DashboardComponent implements OnInit {
+  devices$: Observable<Device[]>;
+  // Base columns for regular users; admin sees an extra "owner" column.
+  displayedColumns: string[] = ['id', 'name', 'status', 'version', 'http_endpoint', 'actions'];
+  loading = true;
+  isAdmin = false;
+  selectedUserId?: number;
+  // For admin: list of users. (In a real app, fetch from backend.)
+  users: { id: number; email: string }[] = [];
+
+  constructor(
+    private deviceService: DeviceService,
+    private store: Store<{ app: AppState }>,
+    private authService: AuthService
+  ) {
+    this.devices$ = this.store.pipe(select(state => state.app.devices));
+    this.isAdmin = this.authService.isAdmin();
+    if (this.isAdmin) {
+      // Insert extra column "owner" after name
+      this.displayedColumns.splice(2, 0, 'owner');
+    }
+  }
+
+  ngOnInit(): void {
+    if (this.isAdmin) {
+      this.fetchUsers();
+    }
+    this.fetchDevices();
+  }
+
+  fetchDevices(): void {
+    const userId = this.isAdmin ? this.selectedUserId : undefined;
+    this.deviceService.getDevices(userId).subscribe({
+      next: (data) => {
+        this.store.dispatch(setDevices({ devices: data }));
+        this.loading = false;
+      },
+      error: (err) => {
+        console.error('Error fetching devices', err);
+        this.loading = false;
+      }
+    });
+  }
+
+  fetchUsers(): void {
+    // Replace with a real API call to /admin/users if available.
+    this.users = [
+      { id: 1, email: 'user1@example.com' },
+      { id: 2, email: 'user2@example.com' },
+      { id: 3, email: 'admin@example.com' }
+    ];
+  }
+
+  onUserChange(event: any): void {
+    this.selectedUserId = event.target.value ? parseInt(event.target.value, 10) : undefined;
+    this.fetchDevices();
+  }
+
+  autoDiscoverDevices(): void {
+    this.deviceService.getAllDiscoveredDevices().subscribe({
+      next: (devices) => {
+        console.log('Auto-discovered devices:', devices);
+        // Optionally update the store or show a modal with discovered devices.
+      },
+      error: (err) => console.error('Error auto discovering devices', err)
+    });
+  }
+
+  viewDevice(id: number): void {
+    console.log('View device with ID:', id);
+    // Add navigation logic here (e.g., using Router.navigate)
+  }
+}
+
+
+----- src/app/features/dosing/dosing.module.ts -----
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { DosingControlComponent } from './dosing-control/dosing-control.component';
+import { PlantService } from '../../services/plant.service'; 
+import { DosingRoutingModule } from './dosing-routing.module';
+
+
+@NgModule({
+  declarations: [],
+  imports: [
+    CommonModule,
+    FormsModule,
+    DosingControlComponent,
+    DosingRoutingModule
+  ],
+  providers: [PlantService], // ✅ Register the PlantService
+  exports: [DosingControlComponent] 
+})
+export class DosingModule { }
+
+----- src/app/features/dosing/dosing-routing.module.ts -----
+export class DosingModule { }
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { DosingControlComponent } from './dosing-control/dosing-control.component';
+
+const routes: Routes = [
+  { path: '', component: DosingControlComponent }
+];
+
+@NgModule({
+  imports: [RouterModule.forChild(routes)],
+  exports: [RouterModule]
+})
+export class DosingRoutingModule {}
+
+----- src/app/features/dosing/dosing-control/dosing-control.component.ts -----
+import { Component, OnInit } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Observable, tap } from 'rxjs';
+import { Store, select } from '@ngrx/store';
+import { PlantService, Plant } from '../../../services/plant.service';
+import { AppState } from '../../../state/state.model';
+
+@Component({
+  selector: 'app-dosing-control',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './dosing-control.component.html',
+  styleUrls: ['./dosing-control.component.scss'] 
+})
+export class DosingControlComponent implements OnInit {
+  plants$: Observable<Plant[]>;  // ✅ Now using NgRx store
+  devices$: Observable<any[]>;   // ✅ Now using NgRx store
+  selectedPlant: Plant | null = null;
+  selectedDevice: any | null = null;
+  llmResponse: any | null = null;
+  isLoading: boolean = false;
+
+  constructor(
+    private http: HttpClient,
+    private store: Store<{ app: AppState }>, // ✅ Injecting NgRx Store
+    private plantService: PlantService
+  ) {
+    this.plants$ = this.store.pipe(select(state => state.app.plants));   // ✅ Selecting plants from NgRx
+    this.devices$ = this.store.pipe(select(state => state.app.devices)); // ✅ Selecting devices from NgRx
+  }
+
+  ngOnInit(): void {}
+
+  isValidJson(data: any): boolean {
+    if (typeof data !== "string") return true;
+    try {
+      JSON.parse(data);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  checkDosing(): void {
+    if (!this.selectedPlant || !this.selectedDevice) return;
+
+    this.isLoading = true;
+    this.llmResponse = null;
+
+    const requestData = {
+      sensor_data: { 
+        ph: 6.8, 
+        tds: 450 
+      }, 
+      plant_profile: {
+        plant_name: this.selectedPlant.name,
+        plant_type: this.selectedPlant.type,
+        growth_stage: this.selectedPlant.growth_stage,
+        seeding_date: this.selectedPlant.seeding_date,
+        weather_locale: this.selectedPlant.region ?? "Unknown"
+      }
+    };
+
+    this.http.post(`http://localhost:8000/api/v1/dosing/llm-request?device_id=${this.selectedDevice.id}`, requestData)
+      .pipe(
+        tap(response => {
+          console.log("LLM Response:", response);
+          this.llmResponse = response;
+          this.isLoading = false;
+        })
+      )
+      .subscribe({
+        error: (err) => {
+          console.error("Error in LLM request:", err);
+          this.isLoading = false;
+        }
+      });
+  }
+
+  copyToClipboard(data: any) {
+    navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+  }
+}
+
+
+----- src/app/features/dosing/dosing-control/dosing-control.component.scss -----
+// Variables
+$color-blue-50: #eff6ff;
+$color-blue-100: #dbeafe;
+$color-blue-200: #bfdbfe;
+$color-blue-600: #2563eb;
+$color-blue-700: #1d4ed8;
+$color-blue-800: #1e40af;
+$color-gray-50: #f9fafb;
+$color-gray-100: #f3f4f6;
+$color-gray-200: #e5e7eb;
+$color-gray-300: #d1d5db;
+$color-gray-400: #9ca3af;
+$color-gray-500: #6b7280;
+$color-gray-600: #4b5563;
+$color-gray-700: #374151;
+$color-gray-900: #111827;
+$color-white: #ffffff;
+
+// Mixins
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin transition {
+  transition: all 0.2s ease-in-out;
+}
+
+// Container
+.dosing-container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, $color-blue-50 0%, $color-white 100%);
+  padding: 2rem 1rem;
+
+  @media (min-width: 640px) {
+    padding: 2rem;
+  }
+}
+
+// Header
+.dosing-header {
+  max-width: 64rem;
+  margin: 0 auto 2rem;
+  
+  .header-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .header-icon {
+    width: 2rem;
+    height: 2rem;
+    color: $color-blue-600;
+  }
+
+  h2 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: $color-gray-900;
+    margin: 0;
+  }
+}
+
+// Control Panel
+.control-panel {
+  max-width: 64rem;
+  margin: 0 auto;
+  background: $color-white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+}
+
+.control-grid {
+  display: grid;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+// Form Elements
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: $color-gray-700;
+  }
+}
+
+.select-wrapper {
+  position: relative;
+
+  select {
+    width: 100%;
+    padding: 0.625rem 2.5rem 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    color: $color-gray-900;
+    background-color: $color-white;
+    border: 1px solid $color-gray-300;
+    border-radius: 0.375rem;
+    appearance: none;
+    cursor: pointer;
+    @include transition;
+
+    &:hover {
+      border-color: $color-gray-400;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: $color-blue-600;
+      box-shadow: 0 0 0 3px rgba($color-blue-600, 0.1);
+    }
+  }
+
+  .select-icon {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1rem;
+    height: 1rem;
+    color: $color-gray-500;
+    pointer-events: none;
+  }
+}
+
+// Button Styles
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: $color-white;
+  background-color: $color-blue-600;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  @include transition;
+
+  i {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  &:hover {
+    background-color: $color-blue-700;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba($color-blue-600, 0.3);
+  }
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  color: $color-gray-500;
+  background: transparent;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  @include transition;
+
+  i {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  &:hover {
+    color: $color-gray-700;
+    background: $color-gray-100;
+  }
+}
+
+// Loading State
+.loading-state {
+  @include flex-center;
+  padding: 2rem 0;
+
+  .loading-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: $color-blue-600;
+    font-weight: 500;
+  }
+
+  .loading-spinner {
+    width: 1.5rem;
+    height: 1.5rem;
+    animation: spin 1s linear infinite;
+  }
+
+  .dots {
+    display: inline-block;
+    animation: dots 1.5s infinite;
+  }
+}
+
+// Response Container
+.response-container {
+  margin-top: 2rem;
+  border: 1px solid $color-gray-200;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.response-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  background: $color-gray-50;
+  border-bottom: 1px solid $color-gray-200;
+
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: $color-gray-900;
+  }
+}
+
+.response-content {
+  padding: 1.5rem;
+  background: $color-white;
+  overflow-x: auto;
+
+  pre {
+    margin: 0;
+    font-size: 0.875rem;
+    color: $color-gray-600;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: $color-gray-100;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $color-blue-200;
+    border-radius: 4px;
+    
+    &:hover {
+      background: white;
+    }
+  }
+}
+
+// Animations
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dots {
+  0%, 20% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.3;
+  }
+  60% {
+    opacity: 0.6;
+  }
+  80% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+----- src/app/features/dosing/dosing-control/dosing-control.component.spec.ts -----
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { DosingControlComponent } from './dosing-control.component';
+
+describe('DosingControlComponent', () => {
+  let component: DosingControlComponent;
+  let fixture: ComponentFixture<DosingControlComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [DosingControlComponent]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(DosingControlComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+
+
+----- src/app/features/dosing/dosing-control/dosing-control.component.html -----
+<div class="dosing-container">
+  <div class="dosing-header">
+    <div class="header-content">
+      <i class="header-icon lucide-flask-conical"></i>
+      <h2>Dosing Control</h2>
+    </div>
+  </div>
+
+  <div class="control-panel">
+    <div class="control-grid">
+      <!-- Plant Selection -->
+      <div class="form-group">
+        <label for="plant-select">Select Plant</label>
+        <div class="select-wrapper">
+          <select id="plant-select" [(ngModel)]="selectedPlant">
+            <option *ngFor="let plant of (plants$ | async)" [ngValue]="plant">
+              {{ plant.name }} - ({{ plant.region }} | {{ plant.growth_stage }})
+            </option>
+          </select>
+          <i class="select-icon lucide-chevron-down"></i>
+        </div>
+      </div>
+
+      <!-- Device Selection -->
+      <div class="form-group">
+        <label for="device-select">Select Device</label>
+        <div class="select-wrapper">
+          <select id="device-select" [(ngModel)]="selectedDevice">
+            <option *ngFor="let device of (devices$ | async)" [ngValue]="device">
+              {{ device.name }} ({{ device.id }})
+            </option>
+          </select>
+          <i class="select-icon lucide-chevron-down"></i>
+        </div>
+      </div>
+
+      <!-- Action Button -->
+      <div class="form-group button-group">
+        <button class="btn-primary" (click)="checkDosing()">
+          <i class="lucide-play"></i>
+          Start Dosing
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div class="loading-state" *ngIf="isLoading">
+      <div class="loading-content">
+        <i class="loading-spinner lucide-loader-2"></i>
+        <span>Analyzing dosing requirements<span class="dots">...</span></span>
+      </div>
+    </div>
+
+    <!-- LLM Response -->
+    <div class="response-container" *ngIf="llmResponse">
+      <div class="response-header">
+        <h3>Dosing Plan</h3>
+        <button class="btn-icon" (click)="copyToClipboard(llmResponse)">
+          <i class="lucide-copy"></i>
+        </button>
+      </div>
+      <div class="response-content">a
+        <div class="response-content">
+          <div *ngIf="llmResponse && llmResponse.length">
+            <div *ngFor="let responseItem of llmResponse">
+              <div *ngIf="isValidJson(responseItem); else rawText">
+                <pre>{{ responseItem | json }}</pre>
+              </div>
+              <ng-template #rawText>
+                <div class="think-bubble">
+                  <pre>{{ responseItem }}</pre>
+                </div>
+              </ng-template>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</div>
+
+----- src/app/features/monitoring/monitoring.module.ts -----
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+
+
+@NgModule({
+  declarations: [],
+  imports: [
+    CommonModule
+  ]
+})
+export class MonitoringModule { }
+
+
+----- src/app/features/monitoring/components/monitoring-dashboard/monitoring-dashboard.component.html -----
+<p>monitoring-dashboard works!</p>
+
+
+----- src/app/features/monitoring/components/monitoring-dashboard/monitoring-dashboard.component.scss -----
+
+
+----- src/app/features/monitoring/components/monitoring-dashboard/monitoring-dashboard.component.ts -----
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-monitoring-dashboard',
+  imports: [],
+  templateUrl: './monitoring-dashboard.component.html',
+  styleUrl: './monitoring-dashboard.component.scss'
+})
+export class MonitoringDashboardComponent {
+
+}
+
+
+----- src/app/features/monitoring/components/monitoring-dashboard/monitoring-dashboard.component.spec.ts -----
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { MonitoringDashboardComponent } from './monitoring-dashboard.component';
+
+describe('MonitoringDashboardComponent', () => {
+  let component: MonitoringDashboardComponent;
+  let fixture: ComponentFixture<MonitoringDashboardComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [MonitoringDashboardComponent]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(MonitoringDashboardComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+
+
+----- src/app/features/devices/device.interface.ts -----
+// src/app/features/devices/device.interface.ts
+export interface Device {
+  id: number;
+  name: string;
+  type: 'dosing_unit' | 'ph_tds_sensor' | 'environment_sensor';
+  http_endpoint: string;
+  location_description?: string;
+  status?: string;      // e.g., "Online" or "Offline"
+  version?: string;     // Device firmware/version info
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  last_seen?: string;
+  pump_configurations?: any[]; // Ensure this matches the backend response structure
+  sensor_parameters?: any;
+  owner_email?: string; // <-- Added for admin display
+}
+
+
+export interface DiscoveredDevice {
+  id: string;
+  name?: string;
+  type?: string;
+  status?: string;
+  http_endpoint?: string;
+}
+
+
+----- src/app/features/devices/devices.module.ts -----
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { DeviceDiscoveryComponent } from './components/device-discovery/device-discovery.component';
+import { DeviceListComponent } from './components/device-list/device-list.component';
+import { DeviceDetailComponent } from './components/device-detail/device-detail.component';
+
+const routes: Routes = [
+  { 
+    path: '', 
+    component: DeviceDiscoveryComponent 
+  },
+  { 
+    path: 'list', 
+    component: DeviceListComponent 
+  },
+  { 
+    path: ':id', 
+    component: DeviceDetailComponent 
+  }
+];
+
+@NgModule({
+  imports: [
+    RouterModule.forChild(routes),
+    DeviceDiscoveryComponent,
+    DeviceListComponent,
+    DeviceDetailComponent
+  ]
+})
+export class DevicesModule { }
+
+----- src/app/features/devices/components/device-discovery/device-discovery.component.scss -----
+.discovery-container {
+  padding: 20px;
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+
+    h2 {
+      margin: 0;
+    }
+
+    .ip-check {
+      display: flex;
+      align-items: center;
+    }
+  }
+
+  .content {
+    position: relative;
+    min-height: 200px;
+
+    mat-progress-spinner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+  }
+
+  .device-card {
+    margin-top: 20px;
+
+    .mat-card-header {
+      margin-bottom: 16px;
+    }
+
+    .mat-card-content {
+      p {
+        margin: 8px 0;
+      }
+    }
+  }
+
+  .error-message {
+    color: #f44336;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .no-devices {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+  }
+}
+
+
+----- src/app/features/devices/components/device-discovery/device-discovery.component.html -----
+<div class="discovery-container">
+  <div class="header">
+    <h2>Device Discovery</h2>
+    <div class="ip-check">
+      <!-- Input for entering the device IP -->
+      <input matInput 
+             placeholder="Enter device IP" 
+             [(ngModel)]="ipToCheck" 
+             style="margin-right: 10px; max-width: 200px;" />
+      <!-- Button triggers the device check -->
+      <button mat-raised-button 
+              color="primary" 
+              (click)="checkDevice()" 
+              [disabled]="isChecking">
+        <mat-icon>search</mat-icon>
+        {{ isChecking ? 'Checking...' : 'Check Device' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+    <mat-progress-spinner *ngIf="isChecking"
+                           mode="indeterminate"
+                           diameter="50">
+    </mat-progress-spinner>
+
+    <div *ngIf="error" class="error-message">
+      {{ error }}
+    </div>
+
+    <div *ngIf="!isChecking && !discoveredDevice" class="no-devices">
+      No device found. Enter an IP and click “Check Device.”
+    </div>
+
+    <div *ngIf="discoveredDevice" class="device-card">
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>{{ discoveredDevice.name || 'Unknown Device' }}</mat-card-title>
+          <mat-card-subtitle>{{ discoveredDevice.type || 'Unknown Type' }}</mat-card-subtitle>
+        </mat-card-header>
+        
+        <mat-card-content>
+          <p>ID: {{ discoveredDevice.id || discoveredDevice.device_id }}</p>
+          <p>Status: {{ discoveredDevice.status || 'Online' }}</p>
+          <p>IP: {{ discoveredDevice.ip }}</p>
+          <!-- Add more device details as needed -->
+        </mat-card-content>
+  
+        <mat-card-actions align="end">
+          <button mat-button color="primary" (click)="configureDevice(discoveredDevice)">
+            Configure
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+  </div>
+</div>
+
+
+----- src/app/features/devices/components/device-discovery/device-discovery.component.ts -----
+import { Component, OnInit, Injectable } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatIcon } from '@angular/material/icon';
+import { DeviceConfigurationDialogComponent } from '../device-configuration-dialog/device-configuration-dialog.component';
+import { FormsModule } from '@angular/forms';
+
+/**
+ * Minimal DeviceService to check a device by IP.
+ */
+@Injectable({
+  providedIn: 'root'
+})
+export class DeviceService {
+  constructor(private http: HttpClient) {}
+
+  checkDevice(ip: string): Observable<any> {
+    // Calls the backend endpoint /api/v1/devices/discover with ?ip=<ip>
+    return this.http.get('/api/v1/devices/discover', { params: { ip } });
+  }
+}
+
+@Component({
+  selector: 'app-device-discovery',
+  templateUrl: './device-discovery.component.html',
+  styleUrls: ['./device-discovery.component.scss'],
+  standalone: true,
+  imports: [
+    CommonModule,
+    HttpClientModule,
+    FormsModule,
+    MatCardModule,
+    MatButtonModule,
+    MatProgressSpinnerModule,
+    MatIcon
+  ]
+})
+export class DeviceDiscoveryComponent implements OnInit {
+  // Holds the discovered device (if any)
+  discoveredDevice: any = null;
+  // For showing error messages
+  error: string | null = null;
+  // Indicates if a check is in progress
+  isChecking = false;
+  // Bound to the input field for entering an IP address
+  ipToCheck: string = '';
+
+  constructor(
+    private deviceService: DeviceService,
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
+  ) {}
+
+  ngOnInit(): void {
+    // Waiting for user input; no auto-check by default.
+  }
+
+  checkDevice(): void {
+    if (!this.ipToCheck.trim()) {
+      this.snackBar.open('Please enter a valid IP address', 'Close', { duration: 3000 });
+      return;
+    }
+    this.isChecking = true;
+    this.error = null;
+    this.discoveredDevice = null;
+    this.deviceService.checkDevice(this.ipToCheck.trim()).subscribe({
+      next: (response) => {
+        if (response && response.id) {
+          this.discoveredDevice = response;
+          this.snackBar.open('Device found!', 'Close', { duration: 3000 });
+        } else {
+          this.snackBar.open('No device found at that IP', 'Close', { duration: 3000 });
+        }
+      },
+      
+      error: (err) => {
+        this.error = 'Failed to check device';
+        this.snackBar.open('Error checking device', 'Close', { duration: 3000 });
+        console.error('Device check error:', err);
+      },
+      complete: () => {
+        this.isChecking = false;
+      }
+    });
+  }
+
+  configureDevice(device: any): void {
+    const dialogRef = this.dialog.open(DeviceConfigurationDialogComponent, {
+      width: '600px',
+      data: { device }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.snackBar.open('Device configured successfully', 'Close', { duration: 3000 });
+      }
+    });
+  }
+}
+
+
+----- src/app/features/devices/components/device-detail/device-detail.component.scss -----
+
+
+----- src/app/features/devices/components/device-detail/device-detail.component.ts -----
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-device-detail',
+  imports: [],
+  templateUrl: './device-detail.component.html',
+  styleUrl: './device-detail.component.scss'
+})
+export class DeviceDetailComponent {
+
+}
+
+
+----- src/app/features/devices/components/device-detail/device-detail.component.html -----
+<p>device-detail works!</p>
+
+
+----- src/app/features/devices/components/device-detail/device-detail.component.spec.ts -----
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { DeviceDetailComponent } from './device-detail.component';
+
+describe('DeviceDetailComponent', () => {
+  let component: DeviceDetailComponent;
+  let fixture: ComponentFixture<DeviceDetailComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [DeviceDetailComponent]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(DeviceDetailComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+
+
+----- src/app/features/devices/components/device-configuration-dialog/device-configuration-dialog.component.ts -----
+import { Component, OnInit, Inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatButtonModule } from '@angular/material/button';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDividerModule } from '@angular/material/divider';
+import { DeviceService } from '../../../../services/device.service';
+import { firstValueFrom } from 'rxjs';
+
+interface DialogData {
+  device?: any;
+}
+
+@Component({
+  selector: 'app-device-configuration-dialog',
+  templateUrl: './device-configuration-dialog.component.html',
+  styleUrls: ['./device-configuration-dialog.component.scss'],
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatButtonModule,
+    MatSnackBarModule,
+    MatDividerModule
+  ]
+})
+export class DeviceConfigurationDialogComponent implements OnInit {
+  configForm: FormGroup;
+  isSubmitting = false;
+  deviceTypes = [
+    { value: 'dosing_unit', label: 'Dosing Unit' },
+    { value: 'ph_tds_sensor', label: 'pH/TDS Sensor' },
+    { value: 'environment_sensor', label: 'Environment Sensor' }
+  ];
+
+  constructor(
+    private fb: FormBuilder,
+    private dialogRef: MatDialogRef<DeviceConfigurationDialogComponent>,
+    @Inject(MAT_DIALOG_DATA) public data: DialogData,
+    private deviceService: DeviceService,
+    private snackBar: MatSnackBar
+  ) {
+    this.configForm = this.fb.group({
+      name: ['', [Validators.required, Validators.minLength(3)]],
+      type: ['', Validators.required],
+      http_endpoint: ['', [
+        Validators.required,
+        Validators.pattern('')  // ✅ Allows full URLs
+      ]],
+      location_description: [''],
+      pump_configurations: this.fb.array([]),
+      sensor_parameters: this.fb.group({
+        calibration: [''],
+        measurement_interval: [30],
+        alert_thresholds: ['']
+      })
+    });
+  }
+
+  get pumpConfigs(): FormArray {
+    return this.configForm.get('pump_configurations') as FormArray;
+  }
+
+  ngOnInit(): void {
+    if (this.data?.device) {
+      this.configForm.patchValue(this.data.device);
+    }
+
+    this.configForm.get('type')?.valueChanges.subscribe(type => {
+      if (type === 'dosing_unit') {
+        this.initializePumpConfigs();
+      } else {
+        this.pumpConfigs.clear();
+      }
+    });
+  }
+
+  private initializePumpConfigs(): void {
+    const pumps = this.pumpConfigs;
+    pumps.clear();
+
+    for (let i = 0; i < 4; i++) {
+      pumps.push(this.fb.group({
+        pump_number: [i + 1, Validators.required], 
+        chemical_name: ['', Validators.required],
+        chemical_description: ['']
+      }));
+    }
+  }
+
+  /** ✅ Converts pump_configurations array to required key-value object format */
+  private formatPumpConfigurations(): any {
+    const pumpsArray = this.configForm.value.pump_configurations || [];
+    const pumpsObject: any = {};
+    
+    pumpsArray.forEach((pump: any, index: number) => {
+      pumpsObject[`pump${index + 1}`] = {
+        chemical_name: pump.chemical_name,
+        chemical_description: pump.chemical_description
+      };
+    });
+
+    return pumpsObject;
+  }
+
+  /** ✅ Registers the device before saving its configuration */
+  private registerDevice(deviceData: any): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.deviceService.registerDevice(deviceData).subscribe({
+        next: (response) => {
+          console.log("✅ Device Registered:", response);
+          resolve(response);
+        },
+        error: (error) => {
+          console.error("❌ Device Registration Failed:", error);
+          this.snackBar.open('Device registration failed', 'Close', { duration: 3000 });
+          reject(error);
+        }
+      });
+    });
+  }
+
+async onSubmit(): Promise<void> {
+  if (this.configForm.valid && !this.isSubmitting) {
+    this.isSubmitting = true;
+    let deviceData = { ...this.configForm.value };
+
+    if (deviceData.type === 'dosing_unit') {
+      deviceData.pump_configurations = this.pumpConfigs.value; // Ensure it's an array
+    }
+
+    try {
+      // ✅ Check if the device already exists
+      const devices = await firstValueFrom(this.deviceService.getDevices());
+      const existingDevice = devices.find(d => d.http_endpoint === deviceData.http_endpoint);
+
+      if (existingDevice) {
+        console.log("🔄 Device already exists. Registering in LLM...");
+        await firstValueFrom(this.deviceService.registerDevice(deviceData)); // Manually register in LLM
+      } else {
+        console.log("🆕 Registering new device...");
+        await firstValueFrom(this.deviceService.createDevice(deviceData));
+      }
+
+      // ✅ Successfully registered, proceed with LLM call
+      this.snackBar.open('Device registered successfully', 'Close', { duration: 3000 });
+      this.dialogRef.close(deviceData);
+
+    } catch (error) {
+      console.error('❌ Error:', error);
+      this.snackBar.open('Error registering device', 'Close', { duration: 3000 });
+    } finally {
+      this.isSubmitting = false;
+    }
+  }
+}
+
+
+  onCancel(): void {
+    this.dialogRef.close();
+  }
+}
+
+
+----- src/app/features/devices/components/device-configuration-dialog/device-configuration-dialog.component.html -----
+<div class="dialog-container">
+    <h2 mat-dialog-title>Configure Device</h2>
+    
+    <form [formGroup]="configForm" class="config-form">
+      <mat-dialog-content>
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Device Name</mat-label>
+            <input matInput formControlName="name" placeholder="Enter device name">
+            <mat-hint>Give your device a unique name</mat-hint>
+            <mat-error *ngIf="configForm.get('name')?.hasError('required')">
+              Name is required
+            </mat-error>
+            <mat-error *ngIf="configForm.get('name')?.hasError('minlength')">
+              Name must be at least 3 characters
+            </mat-error>
+          </mat-form-field>
+        </div>
+  
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Device Type</mat-label>
+            <mat-select formControlName="type">
+              <mat-option *ngFor="let type of deviceTypes" [value]="type.value">
+                {{type.label}}
+              </mat-option>
+            </mat-select>
+            <mat-hint>Select the type of device you're configuring</mat-hint>
+            <mat-error *ngIf="configForm.get('type')?.hasError('required')">
+              Device type is required
+            </mat-error>
+          </mat-form-field>
+        </div>
+  
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>HTTP Endpoint</mat-label>
+            <input matInput formControlName="http_endpoint" 
+                   placeholder="000.000.000.000">
+            <mat-hint>Format: hydroleaf/pump_controller_1/command</mat-hint>
+            <mat-error *ngIf="configForm.get('http_endpoint')?.hasError('required')">
+              HTTP Endpoint is required
+            </mat-error>
+            <mat-error *ngIf="configForm.get('http_endpoint')?.hasError('pattern')">
+              Invalid format. Use: hydroleaf/device_id/command
+            </mat-error>
+          </mat-form-field>
+        </div>
+  
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Location Description</mat-label>
+            <input matInput formControlName="location_description" 
+                   placeholder="e.g., Greenhouse 1, Zone A">
+            <mat-hint>Optional: Describe where this device is installed</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <!-- Pump Configurations Section (shown only for dosing units) -->
+        <div *ngIf="configForm.get('type')?.value === 'dosing_unit'" class="pump-configs">
+          <h3>Pump Configurations</h3>
+          <div formArrayName="pump_configurations">
+            <div *ngFor="let pump of pumpConfigs.controls; let i=index" 
+                 [formGroupName]="i" class="pump-config">
+              <h4>Pump {{i + 1}}</h4>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Chemical Name</mat-label>
+                <input matInput formControlName="chemical_name" 
+                       placeholder="e.g., pH Up">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Description</mat-label>
+                <input matInput formControlName="chemical_description" 
+                       placeholder="Optional description">
+              </mat-form-field>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sensor Parameters (shown only for sensor types) -->
+        <div *ngIf="configForm.get('type')?.value.includes('sensor')" 
+             formGroupName="sensor_parameters" class="sensor-params">
+          <h3>Sensor Parameters</h3>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Measurement Interval (seconds)</mat-label>
+            <input matInput type="number" formControlName="measurement_interval">
+          </mat-form-field>
+        </div>
+
+        <!-- Form Debug Information -->
+        <div class="debug-info" style="margin: 20px 0; padding: 10px; background: #f5f5f5; font-size: 12px;">
+          <div>Form Valid: {{ configForm.valid }}</div>
+          <div>Name Valid: {{ configForm.get('name')?.valid }}</div>
+          <div>Type Valid: {{ configForm.get('type')?.valid }}</div>
+          <div>HTTP Endpoint Valid: {{ configForm.get('http_endpoint')?.valid }}</div>
+        </div>
+      </mat-dialog-content>
+  
+      <mat-dialog-actions align="end">
+        <button mat-button (click)="onCancel()" [disabled]="isSubmitting">Cancel</button>
+        <button mat-raised-button color="primary" 
+                [disabled]="!configForm.get('name')?.valid || 
+                           !configForm.get('type')?.valid || 
+                           !configForm.get('http_endpoint')?.valid || 
+                           isSubmitting"
+                (click)="onSubmit()">
+          {{isSubmitting ? 'Saving...' : 'Save Configuration'}}
+        </button>
+      </mat-dialog-actions>
+    </form>
+  </div>
+
+----- src/app/features/devices/components/device-configuration-dialog/device-configuration-dialog.component.scss -----
+.dialog-container {
+    padding: 20px;
+    max-width: 600px;
+    
+    .form-row {
+      margin-bottom: 20px;
+    }
+  
+    .full-width {
+      width: 100%;
+    }
+  
+    .pump-configs, .sensor-params {
+      margin-top: 20px;
+      padding: 15px;
+      border: 1px solid #eee;
+      border-radius: 4px;
+  
+      h3 {
+        margin-top: 0;
+        color: #666;
+      }
+    }
+  
+    .pump-config {
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+  
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+  
+    .debug-info {
+      margin: 20px 0;
+      padding: 10px;
+      background: #f5f5f5;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+  }
+
+----- src/app/features/devices/components/device-list/device-list.component.ts -----
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-device-list',
+  imports: [],
+  templateUrl: './device-list.component.html',
+  styleUrl: './device-list.component.scss'
+})
+export class DeviceListComponent {
+
+}
+
+
+----- src/app/features/devices/components/device-list/device-list.component.html -----
+<p>device-list works!</p>
+
+
+----- src/app/features/devices/components/device-list/device-list.component.spec.ts -----
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { DeviceListComponent } from './device-list.component';
+
+describe('DeviceListComponent', () => {
+  let component: DeviceListComponent;
+  let fixture: ComponentFixture<DeviceListComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [DeviceListComponent]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(DeviceListComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+
+
+----- src/app/features/devices/components/device-list/device-list.component.scss -----
+
+
+----- src/app/shared/shared.module.ts -----
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MaterialModule } from './material/material.module';
+import { ReactiveFormsModule } from '@angular/forms';
+
+@NgModule({
+  declarations: [],
+  imports: [
+    CommonModule,
+    MaterialModule,
+    ReactiveFormsModule
+  ],
+  exports: [
+    CommonModule,
+    MaterialModule,
+    ReactiveFormsModule
+  ]
+})
+export class SharedModule { }
+
+----- src/app/shared/material/material.module.ts -----
+import { NgModule } from '@angular/core';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatListModule } from '@angular/material/list';
+import { MatCardModule } from '@angular/material/card';
+import { MatGridListModule } from '@angular/material/grid-list';
+import { MatTableModule } from '@angular/material/table';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialogModule } from '@angular/material/dialog';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+
+@NgModule({
+  exports: [
+    MatToolbarModule,
+    MatSidenavModule,
+    MatButtonModule,
+    MatIconModule,
+    MatListModule,
+    MatCardModule,
+    MatGridListModule,
+    MatTableModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatSnackBarModule,
+    MatDialogModule,
+    MatProgressSpinnerModule
+  ]
+})
+export class MaterialModule { }
+
+----- src/app/state/actions.ts -----
+import { createAction, props } from '@ngrx/store';
+import { Plant } from '../services/plant.service';
+
+// Actions for Plants
+export const setPlants = createAction('[Plant] Set Plants', props<{ plants: Plant[] }>());
+export const clearPlants = createAction('[Plant] Clear Plants');
+
+// Actions for Devices
+export const setDevices = createAction('[Device] Set Devices', props<{ devices: any[] }>());
+export const clearDevices = createAction('[Device] Clear Devices');
+
+
+----- src/app/state/state.model.ts -----
+import { Plant } from "../services/plant.service";
+
+export interface AppState {
+    plants: Plant[];
+    devices: any[];
+  }
+  
+
+----- src/app/state/reducers.ts -----
+import { createReducer, on } from '@ngrx/store';
+import { setPlants, clearPlants, setDevices, clearDevices } from './actions';
+import { AppState } from './state.model';
+
+export const initialState: AppState = {
+  plants: [],
+  devices: []
+};
+
+export const appReducer = createReducer(
+  initialState,
+  on(setPlants, (state, { plants }) => ({ ...state, plants })),
+  on(clearPlants, (state) => ({ ...state, plants: [] })),
+  on(setDevices, (state, { devices }) => ({ ...state, devices })),
+  on(clearDevices, (state) => ({ ...state, devices: [] }))
+);
+
+
+----- src/app/services/dosing.service.ts -----
+
+
+----- src/app/services/shared-state.service.spec.ts -----
+import { TestBed } from '@angular/core/testing';
+
+import { SharedStateService } from './shared-state.service';
+
+describe('SharedStateService', () => {
+  let service: SharedStateService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(SharedStateService);
+  });
+
+  it('should be created', () => {
+    expect(service).toBeTruthy();
+  });
+});
+
+
+----- src/app/services/farm.service.ts -----
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+export interface Farm {
+  id?: number;
+  name: string;
+  location: string;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class FarmService {
+  private baseUrl = 'http://localhost:8000/api/v1/farms';
+
+  constructor(private http: HttpClient) {}
+
+  getFarms(): Observable<Farm[]> {
+    return this.http.get<Farm[]>(this.baseUrl);
+  }
+
+  getFarmById(id: number): Observable<Farm> {
+    return this.http.get<Farm>(`${this.baseUrl}/${id}`);
+  }
+
+  createFarm(farm: Farm): Observable<Farm> {
+    return this.http.post<Farm>(this.baseUrl, farm);
+  }
+
+  deleteFarm(id: number): Observable<any> {
+    return this.http.delete(`${this.baseUrl}/${id}`);
+  }
+}
+
+
+----- src/app/services/auth.service.ts -----
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+export interface User {
+  id: number;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  role: 'user' | 'admin';
+  // additional fields…
+}
+@Injectable({
+  providedIn: 'root'
+})
+
+export class AuthService {
+  // In a real app, these values would be set on login and decoded from the JWT.
+  private currentUser: User | null = null;
+  private baseUrl = 'http://localhost:8000/api/v1/auth';
+  constructor(private http: HttpClient) {}
+  login(formData: FormData): Observable<{ access_token: string; token_type: string }> {
+    return this.http.post<{ access_token: string; token_type: string }>(`${this.baseUrl}/login`, formData);
+  }
+
+  signup(userData: any): Observable<User> {
+    return this.http.post<User>(`${this.baseUrl}/signup`, userData);
+  }
+
+  getCurrentUser(): Observable<User> {
+    return this.http.get<User>(`${this.baseUrl}/users/me`);
+  }
+
+  updateCurrentUser(updateData: any): Observable<User> {
+    return this.http.put<User>(`${this.baseUrl}/users/me`, updateData);
+  }
+
+  // Admin impersonation: get a token for a different user
+  impersonateUser(userId: number): Observable<{ access_token: string }> {
+    return this.http.post<{ access_token: string }>(`${this.baseUrl}/admin/users/impersonate/${userId}`, {});
+  }
+
+  // For demo purposes, we hardcode a user. In a real app, this would be set on login.
+  isAdmin(): boolean {
+    return this.currentUser ? this.currentUser.role === 'admin' : false;
+  }
+
+  setCurrentUser(user: User) {
+    this.currentUser = user;
+  }
+
+  getCurrentUserId(): number | null {
+    return this.currentUser ? this.currentUser.id : null;
+  }
+
+  // Optionally add login/logout methods and user state management here.
+}
+
+
+----- src/app/services/device.service.ts -----
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { Device } from '../features/devices/device.interface';
+import { AppConfigService } from '../app-config.service';
+import { AuthService } from './auth.service';
+
+const LAN_URL = 'http://localhost:8000/api/v1';
+const CLOUD_URL = 'https://cloud.example.com/api/v1';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class DeviceService {
+  constructor(
+    private http: HttpClient,
+    private config: AppConfigService,
+    private authService: AuthService
+  ) {}
+
+  private get apiUrl(): string {
+    return this.config.connectionMode === 'LAN' ? LAN_URL : CLOUD_URL;
+  }
+
+  discoverDevices(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/devices/discover`);
+  }
+
+  // New: Automatically discover all registered and reachable devices
+  getAllDiscoveredDevices(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/devices/discover-all`);
+  }
+
+  createDevice(device: Device): Observable<Device> {
+    // For dosing_unit devices use the dosing endpoint, for sensors use sensor endpoint.
+    const endpoint = device.type === 'dosing_unit'
+      ? `${this.apiUrl}/devices/dosing`
+      : `${this.apiUrl}/devices/sensor`;
+    return this.http.post<Device>(endpoint, device);
+  }
+
+  // Updated: Accept optional user filter (for admin view)
+  getDevices(userId?: number): Observable<Device[]> {
+    const params: any = {};
+    if (this.authService.isAdmin()) {
+      if (userId) {
+        params.user_id = userId.toString();
+      }
+      // Admin: get all devices or filter by user
+      return this.http.get<Device[]>(`${this.apiUrl}/devices`, { params });
+    } else {
+      // Regular user: filter by current user's id
+      const currentUserId = this.authService.getCurrentUserId();
+      if (currentUserId) {
+        params.user_id = currentUserId.toString();
+      }
+      return this.http.get<Device[]>(`${this.apiUrl}/devices`, { params });
+    }
+  }
+
+  getDeviceById(id: number): Observable<Device> {
+    return this.http.get<Device>(`${this.apiUrl}/devices/${id}`);
+  }
+
+  registerDevice(deviceData: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/devices/dosing`, deviceData);
+  }
+}
+
+
+----- src/app/services/health.service.ts -----
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class HealthService {
+  private baseUrl = 'http://localhost:8000/api/v1/health';
+
+  constructor(private http: HttpClient) {}
+
+  getHealth(): Observable<any> {
+    return this.http.get(`${this.baseUrl}`);
+  }
+
+  getDatabaseHealth(): Observable<any> {
+    return this.http.get(`${this.baseUrl}/database`);
+  }
+
+  getFullHealth(): Observable<any> {
+    return this.http.get(`${this.baseUrl}/all`);
+  }
+}
+
+
+----- src/app/services/plant.service.ts -----
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+export interface Plant {
+  id?: number;
+  name: string;
+  type: string;
+  growth_stage: string;
+  seeding_date: string;
+  region: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
+export class PlantService {
+  private baseUrl = 'http://localhost:8000/api/v1/plants';  // Update this with your FastAPI URL
+
+  constructor(private http: HttpClient) {}
+
+  // ✅ GET: Fetch all plants
+  getPlants(): Observable<Plant[]> {
+    return this.http.get<Plant[]>(`${this.baseUrl}/plants`);
+  }
+
+  // ✅ GET: Fetch a single plant by ID
+  getPlantById(id: number): Observable<Plant> {
+    return this.http.get<Plant>(`${this.baseUrl}/plants/${id}`);
+  }
+
+  // ✅ POST: Create a new plant
+  createPlant(plant: Plant): Observable<Plant> {
+    return this.http.post<Plant>(`${this.baseUrl}/plants`, plant);
+  }
+
+  // ✅ DELETE: Remove a plant
+  deletePlant(id: number): Observable<any> {
+    return this.http.delete(`${this.baseUrl}/plants/${id}`);
+  }
+}
+
+
+----- src/app/services/shared-state.service.ts -----
+import { Injectable } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
+import { Plant } from './plant.service';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class SharedStateService {
+  private plantsSubject = new BehaviorSubject<Plant[]>([]);
+  plants$ = this.plantsSubject.asObservable();
+
+  private devicesSubject = new BehaviorSubject<any[]>([]);
+  devices$ = this.devicesSubject.asObservable();
+
+  setPlants(plants: Plant[]) {
+    this.plantsSubject.next(plants);
+  }
+
+  setDevices(devices: any[]) {
+    this.devicesSubject.next(devices);
+  }
+}
+
+
+----- src/app/services/dosing.service.ts.service.spec.ts -----
+import { TestBed } from '@angular/core/testing';
+
+import { DosingServiceTsService } from './dosing.service';
+
+describe('DosingServiceTsService', () => {
+  let service: DosingServiceTsService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(DosingServiceTsService);
+  });
+
+  it('should be created', () => {
+    expect(service).toBeTruthy();
+  });
+});
+
+
+----- src/app/services/plant.service.spec.ts -----
+import { TestBed } from '@angular/core/testing';
+
+import { PlantService } from './plant.service';
+
+describe('PlantService', () => {
+  let service: PlantService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({});
+    service = TestBed.inject(PlantService);
+  });
+
+  it('should be created', () => {
+    expect(service).toBeTruthy();
+  });
+});
+
+

@@ -1,0 +1,22 @@
+<div class="firmware-container">
+    <h2>Firmware Update</h2>
+  
+    <div class="form-group">
+      <label for="deviceId">Device ID:</label>
+      <input id="deviceId" type="number" [(ngModel)]="deviceId" placeholder="Enter Device ID" />
+    </div>
+  
+    <div class="form-group">
+      <label for="firmwareFile">Firmware File:</label>
+      <input id="firmwareFile" type="file" (change)="onFileSelected($event)" />
+    </div>
+  
+    <button mat-raised-button color="primary" (click)="updateFirmware()">
+      Update Firmware
+    </button>
+  
+    <div class="update-status" *ngIf="updateStatus">
+      {{ updateStatus }}
+    </div>
+  </div>
+  
