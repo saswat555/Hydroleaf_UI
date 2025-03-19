@@ -11,6 +11,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { DeviceService } from '../../../../services/device.service';
 import { DeviceConfigurationDialogComponent } from '../device-configuration-dialog/device-configuration-dialog.component';
+import { AuthService } from '../../../../services/auth.service';
 
 @Component({
   selector: 'app-device-discovery',
@@ -44,7 +45,8 @@ export class DeviceDiscoveryComponent implements OnInit {
     private deviceService: DeviceService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    private zone: NgZone  // Inject NgZone to run updates inside Angular's zone
+    private zone: NgZone,  // Inject NgZone to run updates inside Angular's zone
+    public authService: AuthService // Inject AuthService publicly so template can access it
   ) {}
 
   ngOnInit(): void {}

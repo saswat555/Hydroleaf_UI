@@ -8,12 +8,15 @@
         <mat-icon>search</mat-icon>
         {{ isChecking ? 'Checking...' : 'Check Device' }}
       </button>
-      <button mat-raised-button color="accent" style="margin-left:10px;" (click)="autoDiscoverAll()"
-              [disabled]="isChecking">
-        <mat-icon>refresh</mat-icon>
-        {{ isChecking ? 'Discovering...' : 'Auto Discover All' }}
-      </button>
-    </div>
+      <!-- Show auto discovery only for admins -->
+      <ng-container *ngIf="authService.isAdmin()">
+        <button mat-raised-button color="accent" style="margin-left:10px;" (click)="autoDiscoverAll()"
+                [disabled]="isChecking">
+          <mat-icon>refresh</mat-icon>
+          {{ isChecking ? 'Discovering...' : 'Auto Discover All' }}
+        </button>
+      </ng-container>
+    </div>    
   </div>
 
   <div class="content">

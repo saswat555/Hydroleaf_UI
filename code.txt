@@ -92,8 +92,14 @@ bootstrapApplication(AppComponent, {
         loadComponent: () =>
           import('./app/features/login/login.component').then(m => m.LoginComponent)
       },
-      { path: '', redirectTo: '/dashboard', pathMatch: 'full' }
+      { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
+      {
+        path: 'signup',
+        loadComponent: () => import('./app/features/signup/signup.component').then(m => m.SignupComponent)
+      },
+      
     ]),
+    
   ]
 }).catch(err => console.error(err));
 
@@ -218,16 +224,32 @@ body {
 <!-- HTML -->
 <div class="app-container">
   <mat-toolbar class="toolbar custom-toolbar">
+    <!-- src/app/app.component.html, inside the toolbar -->
     <div class="toolbar-content">
       <button mat-icon-button (click)="sidenav.toggle()">
         <mat-icon>menu</mat-icon>
       </button>
       <span class="app-title">Hydroleaf</span>
       <span class="toolbar-spacer"></span>
-      <button mat-icon-button>
-        <mat-icon>account_circle</mat-icon>
-      </button>
+      <!-- If user is not logged in, show login and signup -->
+      <ng-container *ngIf="!authService.getCurrentUserId(); else loggedIn">
+        <button mat-icon-button routerLink="/login">
+          <mat-icon>login</mat-icon>
+        </button>
+        <button mat-icon-button routerLink="/signup">
+          <mat-icon>person_add</mat-icon>
+        </button>
+      </ng-container>
+      <ng-template #loggedIn>
+        <!-- Show admin mode text if admin -->
+        <span *ngIf="authService.isAdmin()" class="admin-label">ADMIN MODE</span>
+        <button mat-icon-button (click)="logout()">
+          <mat-icon>logout</mat-icon>
+        </button>
+      </ng-template>
     </div>
+    
+
     <div class="geometric-elements">
       <div class="geo-shape shape1"></div>
       <div class="geo-shape shape2"></div>
@@ -237,8 +259,7 @@ body {
   </mat-toolbar>
 
   <mat-sidenav-container class="sidenav-container">
-    <mat-sidenav #sidenav [mode]="(isHandset$ | async) ? 'over' : 'side'"
-                [opened]="!(isHandset$ | async)">
+    <mat-sidenav #sidenav [mode]="(isHandset$ | async) ? 'over' : 'side'" [opened]="!(isHandset$ | async)">
       <mat-nav-list>
         <a mat-list-item routerLink="/dashboard">
           <mat-icon>dashboard</mat-icon>
@@ -323,123 +344,129 @@ export class AppRoutingModule { }
 // Custom toolbar styling with geometric blue elements and sidebar width fixes
 
 .app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.admin-label {
+  font-weight: bold;
+  color: red;
+  margin-right: 1rem;
+}
+
+.custom-toolbar {
+  height: 80px;
+  padding: 0;
+  background: white;
+  color: #333;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  .toolbar-content {
     display: flex;
-    flex-direction: column;
-    height: 100vh;
-  }
-  
-  .custom-toolbar {
-    height: 80px;
-    padding: 0;
-    background: white;
-    color: #333;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    padding: 0 16px;
+    z-index: 2;
     position: relative;
-    overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  
-    .toolbar-content {
+
+    // Fix for menu icon visibility
+    button {
+      mat-icon {
+        color: #333; // Darker color for better visibility on white background
+      }
+    }
+  }
+
+  .app-title {
+    font-weight: bold;
+    font-size: 22px;
+    margin-left: 8px;
+    color: #333;
+  }
+
+  .toolbar-spacer {
+    flex: 1 1 auto;
+  }
+
+  .geometric-elements {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    width: 40%;
+    z-index: 1;
+  }
+
+  .geo-shape {
+    position: absolute;
+    height: 100%;
+  }
+
+  .shape1 {
+    width: 100%;
+    right: 0;
+    background-color: #034859;
+    clip-path: polygon(30% 0, 100% 0, 100% 100%, 0 100%);
+  }
+
+  .shape2 {
+    width: 80%;
+    right: 0;
+    background-color: #05668D;
+    clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%);
+  }
+
+  .shape3 {
+    width: 60%;
+    right: 0;
+    background-color: #0A8EA0;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 15% 100%);
+  }
+
+  .shape4 {
+    width: 35%;
+    right: 0;
+    background-color: #00B4D8;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 25% 100%);
+  }
+}
+
+// Fix for sidebar width
+mat-sidenav {
+  width: 250px; // Increased width for better visibility and usability
+
+  mat-nav-list {
+    a {
       display: flex;
       align-items: center;
-      width: 100%;
-      height: 100%;
-      padding: 0 16px;
-      z-index: 2;
-      position: relative;
-  
-      // Fix for menu icon visibility
-      button {
-        mat-icon {
-          color: #333; // Darker color for better visibility on white background
-        }
+      padding: 12px 16px;
+
+      mat-icon {
+        margin-right: 12px;
       }
-    }
-  
-    .app-title {
-      font-weight: bold;
-      font-size: 22px;
-      margin-left: 8px;
-      color: #333;
-    }
-  
-    .toolbar-spacer {
-      flex: 1 1 auto;
-    }
-  
-    .geometric-elements {
-      position: absolute;
-      right: 0;
-      top: 0;
-      height: 100%;
-      width: 40%;
-      z-index: 1;
-    }
-  
-    .geo-shape {
-      position: absolute;
-      height: 100%;
-    }
-  
-    .shape1 {
-      width: 100%;
-      right: 0;
-      background-color: #034859;
-      clip-path: polygon(30% 0, 100% 0, 100% 100%, 0 100%);
-    }
-  
-    .shape2 {
-      width: 80%;
-      right: 0;
-      background-color: #05668D;
-      clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%);
-    }
-  
-    .shape3 {
-      width: 60%;
-      right: 0;
-      background-color: #0A8EA0;
-      clip-path: polygon(0 0, 100% 0, 100% 100%, 15% 100%);
-    }
-  
-    .shape4 {
-      width: 35%;
-      right: 0;
-      background-color: #00B4D8;
-      clip-path: polygon(0 0, 100% 0, 100% 100%, 25% 100%);
-    }
-  }
-  
-  // Fix for sidebar width
-  mat-sidenav {
-    width: 250px; // Increased width for better visibility and usability
-    
-    mat-nav-list {
-      a {
-        display: flex;
-        align-items: center;
-        padding: 12px 16px;
-        
-        mat-icon {
-          margin-right: 12px;
-        }
-        
-        span {
-          font-size: 16px;
-        }
+
+      span {
+        font-size: 16px;
       }
     }
   }
-  
-  .sidenav-container {
-    flex: 1;
-  }
-  
-  .content {
-    padding: 20px;
-  }
-  
-  mat-icon {
-    color: #333;
-  }
+}
+
+.sidenav-container {
+  flex: 1;
+}
+
+.content {
+  padding: 20px;
+}
+
+mat-icon {
+  color: #333;
+}
 
 ----- src/app/app.routes.ts -----
 import { Routes } from '@angular/router';
@@ -519,7 +546,7 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
-
+import { AuthService } from './services/auth.service';
 @Component({
   selector: 'app-root',
   standalone: true,
@@ -540,12 +567,18 @@ export class AppComponent {
 
   isHandset$: Observable<boolean>;
 
-  constructor(private breakpointObserver: BreakpointObserver) {
+  constructor(private breakpointObserver: BreakpointObserver,
+    public authService: AuthService) {
     this.isHandset$ = this.breakpointObserver.observe(Breakpoints.Handset)
       .pipe(
         map(result => result.matches),
         shareReplay()
       );
+  }
+  logout(): void {
+    this.authService.logout();
+    // Optionally navigate to the login page.
+    window.location.href = '/login';
   }
 }
 
@@ -1358,6 +1391,118 @@ describe('PlantControlComponent', () => {
   </div>
 </div>
 
+----- src/app/features/signup/signup.component.ts -----
+// src/app/features/signup/signup.component.ts
+import { Component } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { AuthService, User } from '../../services/auth.service';
+import { Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
+import { MatInputModule } from '@angular/material/input';
+import { HttpParams } from '@angular/common/http';
+
+@Component({
+  selector: 'app-signup',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, MatInputModule, MatButtonModule],
+  template: `
+    <div class="signup-container">
+      <h2>Sign Up</h2>
+      <form [formGroup]="signupForm" (ngSubmit)="onSubmit()">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Email</mat-label>
+          <input matInput formControlName="email" placeholder="user@example.com">
+          <mat-error *ngIf="signupForm.get('email')?.hasError('required')">
+            Email is required
+          </mat-error>
+          <mat-error *ngIf="signupForm.get('email')?.hasError('email')">
+            Invalid email address
+          </mat-error>
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Password</mat-label>
+          <input matInput type="password" formControlName="password" placeholder="Enter password">
+          <mat-error *ngIf="signupForm.get('password')?.hasError('required')">
+            Password is required
+          </mat-error>
+          <mat-error *ngIf="signupForm.get('password')?.hasError('minlength')">
+            Password must be at least 6 characters
+          </mat-error>
+        </mat-form-field>
+        <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
+        <button mat-raised-button color="primary" type="submit" [disabled]="signupForm.invalid">
+          Sign Up
+        </button>
+      </form>
+    </div>
+  `,
+  styles: [`
+    .signup-container {
+      max-width: 400px;
+      margin: 2rem auto;
+      padding: 2rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    .full-width {
+      width: 100%;
+    }
+    .error-message {
+      color: red;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+    }
+  `]
+})
+export class SignupComponent {
+  signupForm: FormGroup;
+  errorMessage: string = '';
+  
+  constructor(
+    private fb: FormBuilder, 
+    private authService: AuthService, 
+    private router: Router
+  ) {
+    this.signupForm = this.fb.group({
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(6)]]
+    });
+  }
+  
+  onSubmit(): void {
+    if (this.signupForm.valid) {
+      // Call the signup endpoint
+      this.authService.signup(this.signupForm.value).subscribe({
+        next: (user: User) => {
+          // After successful signup, automatically log in using the same credentials.
+          const params = new HttpParams()
+            .set('username', this.signupForm.value.email)
+            .set('password', this.signupForm.value.password);
+  
+          this.authService.login(params).subscribe({
+            next: (loginResponse) => {
+              localStorage.setItem('access_token', loginResponse.access_token);
+              this.authService.setCurrentUser(user);
+              this.router.navigate(['/dashboard']);
+            },
+            error: err => {
+              console.error('Auto login failed:', err);
+              this.errorMessage = 'Signup succeeded but auto login failed. Please login manually.';
+              this.router.navigate(['/login']);
+            }
+          });
+        },
+        error: err => {
+          console.error('Signup failed:', err);
+          this.errorMessage = err.error?.detail || 'Signup failed. Please try again.';
+        }
+      });
+    }
+  }
+}
+
+
 ----- src/app/features/admin/admin-user-management.component.html -----
 <div class="admin-user-management">
   <h2>User Management</h2>
@@ -1564,13 +1709,21 @@ export class FarmsModule { }
     <div class="header-content">
       <i class="header-icon lucide-server"></i>
       <h1>Device Dashboard</h1>
+      <div *ngIf="authService.isAdmin()" class="admin-banner">
+        You are in ADMIN mode
+      </div>
       <!-- Admin-only: user filter dropdown -->
-      <ng-container *ngIf="isAdmin">
+      <ng-container *ngIf="authService.isAdmin()">
+        <!-- User filter dropdown -->
         <select (change)="onUserChange($event)" style="margin-left: 20px;">
           <option value="">All Users</option>
           <option *ngFor="let user of users" [value]="user.id">{{ user.email }}</option>
         </select>
-      </ng-container>
+        <!-- Auto discovery button -->
+        <button mat-raised-button color="primary" style="margin-left: 20px;" (click)="autoDiscoverDevices()">
+          Auto Discover Devices
+        </button>
+      </ng-container>      
       <!-- Admin-only: button for auto discovery -->
       <ng-container *ngIf="isAdmin">
         <button mat-raised-button color="primary" style="margin-left: 20px;" (click)="autoDiscoverDevices()">
@@ -2192,6 +2345,7 @@ export class DashboardModule {}
 
 
 ----- src/app/features/dashboard/dashboard.component.ts -----
+// src/app/features/dashboard/dashboard.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, NgIf, NgForOf } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -2206,6 +2360,7 @@ import { Observable } from 'rxjs';
 import { Device } from '../devices/device.interface';
 import { DeviceService } from '../../services/device.service';
 import { AuthService } from '../../services/auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-dashboard',
@@ -2230,23 +2385,29 @@ export class DashboardComponent implements OnInit {
   loading = true;
   isAdmin = false;
   selectedUserId?: number;
-  // For admin: list of users. (In a real app, fetch from backend.)
+  // Dummy admin user list; replace with API call if needed.
   users: { id: number; email: string }[] = [];
 
   constructor(
     private deviceService: DeviceService,
     private store: Store<{ app: AppState }>,
-    private authService: AuthService
+    public authService: AuthService,
+    private router: Router
   ) {
     this.devices$ = this.store.pipe(select(state => state.app.devices));
     this.isAdmin = this.authService.isAdmin();
     if (this.isAdmin) {
-      // Insert extra column "owner" after name
+      // Insert extra column "owner" after the "name" column.
       this.displayedColumns.splice(2, 0, 'owner');
     }
   }
 
   ngOnInit(): void {
+    // Redirect to login if not authenticated.
+    if (!this.authService.getCurrentUserId()) {
+      this.router.navigate(['/login']);
+      return;
+    }
     if (this.isAdmin) {
       this.fetchUsers();
     }
@@ -2268,7 +2429,7 @@ export class DashboardComponent implements OnInit {
   }
 
   fetchUsers(): void {
-    // Replace with a real API call to /admin/users if available.
+    // Replace with real API call to /admin/users if available.
     this.users = [
       { id: 1, email: 'user1@example.com' },
       { id: 2, email: 'user2@example.com' },
@@ -2292,8 +2453,7 @@ export class DashboardComponent implements OnInit {
   }
 
   viewDevice(id: number): void {
-    console.log('View device with ID:', id);
-    // Add navigation logic here (e.g., using Router.navigate)
+    this.router.navigate(['/devices', id]);
   }
 }
 
@@ -3126,6 +3286,7 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
+import { HttpParams } from '@angular/common/http';
 
 @Component({
   selector: 'app-login',
@@ -3143,6 +3304,7 @@ import { MatInputModule } from '@angular/material/input';
           <mat-label>Password</mat-label>
           <input matInput type="password" formControlName="password" placeholder="Enter password">
         </mat-form-field>
+        <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
         <button mat-raised-button color="primary" type="submit" [disabled]="loginForm.invalid">
           Login
         </button>
@@ -3150,35 +3312,55 @@ import { MatInputModule } from '@angular/material/input';
     </div>
   `,
   styles: [`
-    .login-container { max-width: 400px; margin: 2rem auto; padding: 2rem; border: 1px solid #ddd; border-radius: 8px; }
+    .login-container { 
+      max-width: 400px; 
+      margin: 2rem auto; 
+      padding: 2rem; 
+      border: 1px solid #ddd; 
+      border-radius: 8px; 
+    }
     .full-width { width: 100%; }
+    .error-message { 
+      color: red; 
+      margin-bottom: 1rem; 
+      font-size: 0.9rem; 
+    }
   `]
 })
 export class LoginComponent {
   loginForm: FormGroup;
+  errorMessage: string = '';
+  
   constructor(private fb: FormBuilder, private authService: AuthService, private router: Router) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required]
     });
   }
+  
   onSubmit(): void {
     if (this.loginForm.valid) {
-      const formData = new FormData();
-      formData.append('username', this.loginForm.value.email);
-      formData.append('password', this.loginForm.value.password);
-      this.authService.login(formData).subscribe({
+      const params = new HttpParams()
+        .set('username', this.loginForm.value.email)
+        .set('password', this.loginForm.value.password);
+      
+      this.authService.login(params).subscribe({
         next: (response) => {
           localStorage.setItem('access_token', response.access_token);
-          // After login, load the current user details and navigate to the dashboard
-          this.authService.getCurrentUser().subscribe(user => {
-            this.authService.setCurrentUser(user);
-            this.router.navigate(['/dashboard']);
+          this.authService.getCurrentUser().subscribe({
+            next: user => {
+              this.authService.setCurrentUser(user);
+              this.router.navigate(['/dashboard']);
+            },
+            error: err => {
+              this.errorMessage = 'Failed to load user details.';
+              console.error('Error fetching user details:', err);
+            }
           });
         },
         error: err => {
           console.error('Login failed:', err);
-          // Show error message as needed.
+          this.errorMessage = err.error?.detail || 'Login failed. Please check your credentials.';
         }
       });
     }
@@ -3318,12 +3500,15 @@ export class DevicesModule { }
         <mat-icon>search</mat-icon>
         {{ isChecking ? 'Checking...' : 'Check Device' }}
       </button>
-      <button mat-raised-button color="accent" style="margin-left:10px;" (click)="autoDiscoverAll()"
-              [disabled]="isChecking">
-        <mat-icon>refresh</mat-icon>
-        {{ isChecking ? 'Discovering...' : 'Auto Discover All' }}
-      </button>
-    </div>
+      <!-- Show auto discovery only for admins -->
+      <ng-container *ngIf="authService.isAdmin()">
+        <button mat-raised-button color="accent" style="margin-left:10px;" (click)="autoDiscoverAll()"
+                [disabled]="isChecking">
+          <mat-icon>refresh</mat-icon>
+          {{ isChecking ? 'Discovering...' : 'Auto Discover All' }}
+        </button>
+      </ng-container>
+    </div>    
   </div>
 
   <div class="content">
@@ -3424,6 +3609,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { DeviceService } from '../../../../services/device.service';
 import { DeviceConfigurationDialogComponent } from '../device-configuration-dialog/device-configuration-dialog.component';
+import { AuthService } from '../../../../services/auth.service';
 
 @Component({
   selector: 'app-device-discovery',
@@ -3457,7 +3643,8 @@ export class DeviceDiscoveryComponent implements OnInit {
     private deviceService: DeviceService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    private zone: NgZone  // Inject NgZone to run updates inside Angular's zone
+    private zone: NgZone,  // Inject NgZone to run updates inside Angular's zone
+    public authService: AuthService // Inject AuthService publicly so template can access it
   ) {}
 
   ngOnInit(): void {}
@@ -4138,6 +4325,7 @@ describe('SharedStateService', () => {
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface Farm {
   id?: number;
@@ -4149,22 +4337,22 @@ export interface Farm {
   providedIn: 'root'
 })
 export class FarmService {
-  private baseUrl = 'http://localhost:8000/api/v1/farms';
+  private baseUrl = `${environment.apiUrl}/farms`;
 
   constructor(private http: HttpClient) {}
 
   getFarms(): Observable<Farm[]> {
     return this.http.get<Farm[]>(this.baseUrl);
   }
-
+  
   getFarmById(id: number): Observable<Farm> {
     return this.http.get<Farm>(`${this.baseUrl}/${id}`);
   }
-
+  
   createFarm(farm: Farm): Observable<Farm> {
     return this.http.post<Farm>(this.baseUrl, farm);
   }
-
+  
   deleteFarm(id: number): Observable<any> {
     return this.http.delete(`${this.baseUrl}/${id}`);
   }
@@ -4175,14 +4363,14 @@ export class FarmService {
 // src/app/services/auth.service.ts
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
-
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 export interface User {
   id: number;
   email: string;
   first_name?: string;
   last_name?: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'superadmin';
 }
 
 @Injectable({
@@ -4190,44 +4378,67 @@ export interface User {
 })
 export class AuthService {
   // Update baseUrl for authentication endpoints.
-  private baseUrl = 'http://localhost:8000';
+  private baseUrl = environment.apiUrl;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
-  // Login now posts to "/login" (expects form-data).
-  login(formData: FormData): Observable<{ access_token: string; token_type: string }> {
-    return this.http.post<{ access_token: string; token_type: string }>(`${this.baseUrl}/login`, formData);
+  // Login now posts to "/api/v1/auth/login" and expects URL‑encoded parameters.
+  login(params: HttpParams): Observable<{ access_token: string; token_type: string }> {
+    const headers = new HttpHeaders().set('Content-Type', 'application/x-www-form-urlencoded');
+    // Use the correct endpoint path without duplicating the /api/v1 prefix:
+    return this.http.post<{ access_token: string; token_type: string }>(
+      `${this.baseUrl}/auth/login`,
+      params.toString(),
+      { headers }
+    );
   }
+  
 
-  // Signup endpoint is now at "/signup"
   signup(userData: any): Observable<User> {
-    return this.http.post<User>(`${this.baseUrl}/signup`, userData);
+    return this.http.post<User>(`${this.baseUrl}/auth/signup`, userData);
   }
 
-  // These remain under the "/api/v1" namespace.
+  // In getCurrentUser we attach the token in the Authorization header.
   getCurrentUser(): Observable<User> {
-    return this.http.get<User>(`${this.baseUrl}/api/v1/users/me`);
+    const token = localStorage.getItem('access_token');
+    const headers = token ? new HttpHeaders().set('Authorization', `Bearer ${token}`) : undefined;
+    return this.http.get<User>(`${this.baseUrl}/users/me`, { headers });
   }
-
+  
   updateCurrentUser(updateData: any): Observable<User> {
-    return this.http.put<User>(`${this.baseUrl}/api/v1/users/me`, updateData);
+    const token = localStorage.getItem('access_token');
+    const headers = token ? new HttpHeaders().set('Authorization', `Bearer ${token}`) : undefined;
+    return this.http.put<User>(`${this.baseUrl}/users/me`, updateData, { headers });
   }
-
-  // For admin impersonation, call the endpoint directly (no extra "/api/v1")
+  
   impersonateUser(userId: number): Observable<{ access_token: string }> {
-    return this.http.post<{ access_token: string }>(`${this.baseUrl}/admin/users/impersonate/${userId}`, {});
+    // Note: If the admin endpoint still needs the '/admin' prefix, keep it:
+    return this.http.post<{ access_token: string }>(
+      `${this.baseUrl.replace('/api/v1', '')}/admin/users/impersonate/${userId}`,
+      {}
+    );
   }
 
   // Helper methods for user state…
   private currentUser: User | null = null;
+
   isAdmin(): boolean {
-    return this.currentUser ? this.currentUser.role === 'admin' : false;
+    return this.currentUser
+      ? this.currentUser.role === 'admin' || this.currentUser.role === 'superadmin'
+      : false;
   }
+
   setCurrentUser(user: User) {
     this.currentUser = user;
   }
+
   getCurrentUserId(): number | null {
     return this.currentUser ? this.currentUser.id : null;
+  }
+
+  logout(): void {
+    localStorage.removeItem('access_token');
+    this.currentUser = null;
   }
 }
 
@@ -4239,9 +4450,11 @@ import { Observable } from 'rxjs';
 import { Device } from '../features/devices/device.interface';
 import { AppConfigService } from '../app-config.service';
 import { AuthService } from './auth.service';
+import { HttpHeaders } from '@angular/common/http';
+import { environment } from '../../environments/environment'; // adjust the import path as needed
 
-const LAN_URL = 'http://localhost:8000/api/v1';
-const CLOUD_URL = 'https://cloud.example.com/api/v1';
+const LAN_URL = environment.apiUrl;
+const CLOUD_URL = environment.cloudApiUrl;
 
 @Injectable({
   providedIn: 'root'
@@ -4251,7 +4464,7 @@ export class DeviceService {
     private http: HttpClient,
     private config: AppConfigService,
     private authService: AuthService
-  ) {}
+  ) { }
 
   // Choose the API URL based on the connection mode.
   private get apiUrl(): string {
@@ -4341,15 +4554,18 @@ export class DeviceService {
    * Register a device using the dosing endpoint.
    */
   registerDevice(deviceData: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/devices/dosing`, deviceData);
+    const token = localStorage.getItem('access_token');
+    const headers = token ? new HttpHeaders().set('Authorization', `Bearer ${token}`) : undefined;
+    // Assuming registration for dosing devices:
+    return this.http.post(`${this.apiUrl}/devices/dosing`, deviceData, { headers });
   }
-
   /**
    * Check a device by its IP.
    */
   checkDevice(ip: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/discover`, { params: { ip } });
+    return this.http.get<any>(`${this.apiUrl}/devices/discover`, { params: { ip } });
   }
+
 }
 
 
@@ -4357,23 +4573,24 @@ export class DeviceService {
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-
+import { environment } from '../../environments/environment';
 @Injectable({
   providedIn: 'root'
 })
 export class HealthService {
-  private baseUrl = 'http://localhost:8000/api/v1/health';
+  private baseUrl = `${environment.apiUrl}/health`;
+
 
   constructor(private http: HttpClient) {}
 
   getHealth(): Observable<any> {
-    return this.http.get(`${this.baseUrl}`);
+    return this.http.get(this.baseUrl);
   }
-
+  
   getDatabaseHealth(): Observable<any> {
     return this.http.get(`${this.baseUrl}/database`);
   }
-
+  
   getFullHealth(): Observable<any> {
     return this.http.get(`${this.baseUrl}/all`);
   }
@@ -4385,6 +4602,7 @@ export class HealthService {
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface Plant {
   id?: number;
@@ -4402,13 +4620,12 @@ export interface Plant {
 })
 export class PlantService {
   // Ensure baseUrl points exactly to "/api/v1/plants"
-  private baseUrl = 'http://localhost:8000/api/v1/plants';
+  private baseUrl = `${environment.apiUrl}/plants`;
 
   constructor(private http: HttpClient) {}
 
-  // Update: remove the extra "/plants" from the URL.
   getPlants(): Observable<Plant[]> {
-    return this.http.get<Plant[]>(`${this.baseUrl}`);
+    return this.http.get<Plant[]>(this.baseUrl);
   }
 
   getPlantById(id: number): Observable<Plant> {
@@ -4416,7 +4633,7 @@ export class PlantService {
   }
 
   createPlant(plant: Plant): Observable<Plant> {
-    return this.http.post<Plant>(`${this.baseUrl}`, plant);
+    return this.http.post<Plant>(this.baseUrl, plant);
   }
 
   deletePlant(id: number): Observable<any> {
@@ -4487,4 +4704,18 @@ describe('PlantService', () => {
   });
 });
 
+
+----- src/environments/environment.prod.ts -----
+export const environment = {
+    production: true,
+    apiUrl: 'https://production.example.com/api/v1', // update with your production URL
+    cloudApiUrl: 'https://cloud.example.com/api/v1'
+  };
+
+----- src/environments/environment.ts -----
+export const environment = {
+    production: false,
+    apiUrl: 'http://localhost:8000/api/v1',
+    cloudApiUrl: 'https://cloud.example.com/api/v1'
+  };
 

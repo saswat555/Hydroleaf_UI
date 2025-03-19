@@ -2,7 +2,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-
+import { environment } from '../../environments/environment';
 export interface User {
   id: number;
   email: string;
@@ -16,38 +16,43 @@ export interface User {
 })
 export class AuthService {
   // Update baseUrl for authentication endpoints.
-  private baseUrl = 'http://localhost:8000';
+  private baseUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) { }
 
   // Login now posts to "/api/v1/auth/login" and expects URL‑encoded parameters.
   login(params: HttpParams): Observable<{ access_token: string; token_type: string }> {
+    const headers = new HttpHeaders().set('Content-Type', 'application/x-www-form-urlencoded');
+    // Use the correct endpoint path without duplicating the /api/v1 prefix:
     return this.http.post<{ access_token: string; token_type: string }>(
-      `${this.baseUrl}/api/v1/auth/login`,
-      params
+      `${this.baseUrl}/auth/login`,
+      params.toString(),
+      { headers }
     );
   }
+  
 
   signup(userData: any): Observable<User> {
-    return this.http.post<User>(`${this.baseUrl}/api/v1/auth/signup`, userData);
+    return this.http.post<User>(`${this.baseUrl}/auth/signup`, userData);
   }
 
   // In getCurrentUser we attach the token in the Authorization header.
   getCurrentUser(): Observable<User> {
     const token = localStorage.getItem('access_token');
     const headers = token ? new HttpHeaders().set('Authorization', `Bearer ${token}`) : undefined;
-    return this.http.get<User>(`${this.baseUrl}/api/v1/users/me`, { headers });
+    return this.http.get<User>(`${this.baseUrl}/users/me`, { headers });
   }
-
+  
   updateCurrentUser(updateData: any): Observable<User> {
     const token = localStorage.getItem('access_token');
     const headers = token ? new HttpHeaders().set('Authorization', `Bearer ${token}`) : undefined;
-    return this.http.put<User>(`${this.baseUrl}/api/v1/users/me`, updateData, { headers });
+    return this.http.put<User>(`${this.baseUrl}/users/me`, updateData, { headers });
   }
-
+  
   impersonateUser(userId: number): Observable<{ access_token: string }> {
+    // Note: If the admin endpoint still needs the '/admin' prefix, keep it:
     return this.http.post<{ access_token: string }>(
-      `${this.baseUrl}/admin/users/impersonate/${userId}`,
+      `${this.baseUrl.replace('/api/v1', '')}/admin/users/impersonate/${userId}`,
       {}
     );
   }

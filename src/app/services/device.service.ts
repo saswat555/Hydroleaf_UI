@@ -4,9 +4,11 @@ import { Observable } from 'rxjs';
 import { Device } from '../features/devices/device.interface';
 import { AppConfigService } from '../app-config.service';
 import { AuthService } from './auth.service';
+import { HttpHeaders } from '@angular/common/http';
+import { environment } from '../../environments/environment'; // adjust the import path as needed
 
-const LAN_URL = 'http://localhost:8000/api/v1';
-const CLOUD_URL = 'https://cloud.example.com/api/v1';
+const LAN_URL = environment.apiUrl;
+const CLOUD_URL = environment.cloudApiUrl;
 
 @Injectable({
   providedIn: 'root'
@@ -16,7 +18,7 @@ export class DeviceService {
     private http: HttpClient,
     private config: AppConfigService,
     private authService: AuthService
-  ) {}
+  ) { }
 
   // Choose the API URL based on the connection mode.
   private get apiUrl(): string {
@@ -106,13 +108,16 @@ export class DeviceService {
    * Register a device using the dosing endpoint.
    */
   registerDevice(deviceData: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/devices/dosing`, deviceData);
+    const token = localStorage.getItem('access_token');
+    const headers = token ? new HttpHeaders().set('Authorization', `Bearer ${token}`) : undefined;
+    // Assuming registration for dosing devices:
+    return this.http.post(`${this.apiUrl}/devices/dosing`, deviceData, { headers });
   }
-
   /**
    * Check a device by its IP.
    */
   checkDevice(ip: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/discover`, { params: { ip } });
+    return this.http.get<any>(`${this.apiUrl}/devices/discover`, { params: { ip } });
   }
+
 }

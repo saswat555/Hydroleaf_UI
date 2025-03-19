@@ -2,6 +2,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface Plant {
   id?: number;
@@ -19,13 +20,12 @@ export interface Plant {
 })
 export class PlantService {
   // Ensure baseUrl points exactly to "/api/v1/plants"
-  private baseUrl = 'http://localhost:8000/api/v1/plants';
+  private baseUrl = `${environment.apiUrl}/plants`;
 
   constructor(private http: HttpClient) {}
 
-  // Update: remove the extra "/plants" from the URL.
   getPlants(): Observable<Plant[]> {
-    return this.http.get<Plant[]>(`${this.baseUrl}`);
+    return this.http.get<Plant[]>(this.baseUrl);
   }
 
   getPlantById(id: number): Observable<Plant> {
@@ -33,7 +33,7 @@ export class PlantService {
   }
 
   createPlant(plant: Plant): Observable<Plant> {
-    return this.http.post<Plant>(`${this.baseUrl}`, plant);
+    return this.http.post<Plant>(this.baseUrl, plant);
   }
 
   deletePlant(id: number): Observable<any> {

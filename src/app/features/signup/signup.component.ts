@@ -6,6 +6,7 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
+import { HttpParams } from '@angular/common/http';
 
 @Component({
   selector: 'app-signup',
@@ -77,14 +78,26 @@ export class SignupComponent {
   
   onSubmit(): void {
     if (this.signupForm.valid) {
-      // Call the signup endpoint; ensure AuthService.signup uses '/api/v1/auth/signup'
+      // Call the signup endpoint
       this.authService.signup(this.signupForm.value).subscribe({
         next: (user: User) => {
-          // For simplicity, assume the signup returns a User.
-          // In production you may receive a token and then fetch user details.
-          localStorage.setItem('access_token', 'dummy-token'); // Replace with a real token if provided.
-          this.authService.setCurrentUser(user);
-          this.router.navigate(['/dashboard']);
+          // After successful signup, automatically log in using the same credentials.
+          const params = new HttpParams()
+            .set('username', this.signupForm.value.email)
+            .set('password', this.signupForm.value.password);
+  
+          this.authService.login(params).subscribe({
+            next: (loginResponse) => {
+              localStorage.setItem('access_token', loginResponse.access_token);
+              this.authService.setCurrentUser(user);
+              this.router.navigate(['/dashboard']);
+            },
+            error: err => {
+              console.error('Auto login failed:', err);
+              this.errorMessage = 'Signup succeeded but auto login failed. Please login manually.';
+              this.router.navigate(['/login']);
+            }
+          });
         },
         error: err => {
           console.error('Signup failed:', err);

@@ -7,12 +7,17 @@
         You are in ADMIN mode
       </div>
       <!-- Admin-only: user filter dropdown -->
-      <ng-container *ngIf="isAdmin">
+      <ng-container *ngIf="authService.isAdmin()">
+        <!-- User filter dropdown -->
         <select (change)="onUserChange($event)" style="margin-left: 20px;">
           <option value="">All Users</option>
           <option *ngFor="let user of users" [value]="user.id">{{ user.email }}</option>
         </select>
-      </ng-container>
+        <!-- Auto discovery button -->
+        <button mat-raised-button color="primary" style="margin-left: 20px;" (click)="autoDiscoverDevices()">
+          Auto Discover Devices
+        </button>
+      </ng-container>      
       <!-- Admin-only: button for auto discovery -->
       <ng-container *ngIf="isAdmin">
         <button mat-raised-button color="primary" style="margin-left: 20px;" (click)="autoDiscoverDevices()">
