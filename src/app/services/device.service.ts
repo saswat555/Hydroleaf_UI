@@ -18,51 +18,101 @@ export class DeviceService {
     private authService: AuthService
   ) {}
 
+  // Choose the API URL based on the connection mode.
   private get apiUrl(): string {
     return this.config.connectionMode === 'LAN' ? LAN_URL : CLOUD_URL;
   }
 
-  discoverDevices(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/devices/discover`);
+  /**
+   * Stream discovery progress via Server-Sent Events (SSE).
+   * Returns an Observable that emits each SSE event (parsed as JSON).
+   */
+  discoverAllDevicesStream(): Observable<any> {
+    return new Observable(observer => {
+      const eventSource = new EventSource(`${this.apiUrl}/devices/discover-all`);
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          observer.next(data);
+        } catch (error) {
+          console.error('Error parsing SSE data', error);
+          observer.error(error);
+          eventSource.close();
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        console.error('EventSource encountered an error', error);
+        observer.error(error);
+        eventSource.close();
+      };
+
+      // Cleanup on unsubscription.
+      return () => {
+        eventSource.close();
+      };
+    });
   }
 
-  // New: Automatically discover all registered and reachable devices
+  /**
+   * Automatically discover all registered and reachable devices.
+   * This method makes an HTTP GET request and returns an Observable of an array.
+   */
   getAllDiscoveredDevices(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/devices/discover-all`);
   }
 
+  /**
+   * Create a device.
+   * For 'dosing_unit' devices, it uses the dosing endpoint;
+   * for sensor devices, it uses the sensor endpoint.
+   */
   createDevice(device: Device): Observable<Device> {
-    // For dosing_unit devices use the dosing endpoint, for sensors use sensor endpoint.
     const endpoint = device.type === 'dosing_unit'
       ? `${this.apiUrl}/devices/dosing`
       : `${this.apiUrl}/devices/sensor`;
     return this.http.post<Device>(endpoint, device);
   }
 
-  // Updated: Accept optional user filter (for admin view)
+  /**
+   * Get devices with an optional user filter.
+   * If the user is an admin, they can optionally filter by user_id.
+   * Otherwise, it uses the current user's id.
+   */
   getDevices(userId?: number): Observable<Device[]> {
     const params: any = {};
     if (this.authService.isAdmin()) {
       if (userId) {
         params.user_id = userId.toString();
       }
-      // Admin: get all devices or filter by user
-      return this.http.get<Device[]>(`${this.apiUrl}/devices`, { params });
     } else {
-      // Regular user: filter by current user's id
       const currentUserId = this.authService.getCurrentUserId();
       if (currentUserId) {
         params.user_id = currentUserId.toString();
       }
-      return this.http.get<Device[]>(`${this.apiUrl}/devices`, { params });
     }
+    return this.http.get<Device[]>(`${this.apiUrl}/devices`, { params });
   }
 
+  /**
+   * Get device details for a specific device by its id.
+   */
   getDeviceById(id: number): Observable<Device> {
     return this.http.get<Device>(`${this.apiUrl}/devices/${id}`);
   }
 
+  /**
+   * Register a device using the dosing endpoint.
+   */
   registerDevice(deviceData: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/devices/dosing`, deviceData);
+  }
+
+  /**
+   * Check a device by its IP.
+   */
+  checkDevice(ip: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/discover`, { params: { ip } });
   }
 }

@@ -16,6 +16,8 @@
 </html>
 
 ----- src/main.ts -----
+// src/main.ts
+
 import { bootstrapApplication } from '@angular/platform-browser';
 import { AppComponent } from './app/app.component';
 import { provideAnimations } from '@angular/platform-browser/animations';
@@ -25,20 +27,19 @@ import { provideStore, MetaReducer  } from '@ngrx/store';
 import { localStorageSync } from 'ngrx-store-localstorage';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
 import { appReducer } from './app/state/reducers';
-
+import { MetaReducer as NgRxMetaReducer } from '@ngrx/store';
 
 export function localStorageSyncReducer(reducer: any) {
   return localStorageSync({ keys: ['app'], rehydrate: true })(reducer);
 }
 
-const metaReducers: MetaReducer<any>[] = [localStorageSyncReducer];
-
+const metaReducers: NgRxMetaReducer<any>[] = [localStorageSyncReducer];
 
 bootstrapApplication(AppComponent, {
   providers: [
     provideAnimations(),
     provideHttpClient(),
-    provideStore({ app: appReducer } , { metaReducers }),
+    provideStore({ app: appReducer }, { metaReducers }),
     provideStoreDevtools({ maxAge: 25 }),
     provideRouter([
       {
@@ -75,16 +76,27 @@ bootstrapApplication(AppComponent, {
         path: 'admin',
         loadChildren: () =>
           import('./app/features/admin/admin-user-management.component').then(m => m.AdminUserManagementComponent)
-      },      
+      },
       {
         path: 'farms',
         loadChildren: () =>
           import('./app/features/farms/farms.module').then(m => m.FarmsModule)
       },
+      {
+        path: 'supply-chain',
+        loadChildren: () =>
+          import('./app/features/supply-chain/supply-chain.module').then(m => m.SupplyChainModule)
+      },
+      {
+        path: 'login',
+        loadComponent: () =>
+          import('./app/features/login/login.component').then(m => m.LoginComponent)
+      },
       { path: '', redirectTo: '/dashboard', pathMatch: 'full' }
-    ])
+    ]),
   ]
 }).catch(err => console.error(err));
+
 
 ----- src/styles.scss -----
 /* Import pre-built theme */
@@ -1440,10 +1452,12 @@ import { Router } from '@angular/router';
   templateUrl: './admin-user-management.component.html',
   styleUrls: ['./admin-user-management.component.scss']
 })
+// src/app/features/admin/admin-user-management.component.ts
 export class AdminUserManagementComponent implements OnInit {
   users: User[] = [];
   loading = true;
-  baseUrl = 'http://localhost:8000/api/v1/admin/users';
+  // Update the base URL to remove the /api/v1 prefix.
+  baseUrl = 'http://localhost:8000/admin/users';
 
   constructor(private http: HttpClient, private authService: AuthService, private router: Router) {}
 
@@ -1467,7 +1481,6 @@ export class AdminUserManagementComponent implements OnInit {
   impersonate(userId: number): void {
     this.http.post<{ access_token: string }>(`${this.baseUrl}/impersonate/${userId}`, {}).subscribe({
       next: (response) => {
-        // Save the new token and navigate to the dashboard as the impersonated user.
         localStorage.setItem('access_token', response.access_token);
         this.router.navigate(['/dashboard']);
       },
@@ -1521,7 +1534,7 @@ export class FarmComponent {
       margin-bottom: 20px;
     }
   }
-  
+      
 
 ----- src/app/features/farms/farms.module.ts -----
 import { NgModule } from '@angular/core';
@@ -2823,6 +2836,173 @@ describe('DosingControlComponent', () => {
   </div>
 </div>
 
+----- src/app/features/supply-chain/supply-chain.component.scss -----
+/* src/app/features/supply-chain/supply-chain.component.scss */
+.supply-chain-container {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+  
+    .form-group {
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+  
+      label {
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+      }
+  
+      input, select {
+        padding: 0.5rem;
+        font-size: 1rem;
+      }
+    }
+  
+    .error {
+      margin-top: 1rem;
+      color: red;
+    }
+  
+    .result {
+      margin-top: 2rem;
+      background: #f1f1f1;
+      padding: 1rem;
+      border-radius: 6px;
+    }
+  }
+  
+
+----- src/app/features/supply-chain/supply-chain.component.html -----
+<!-- src/app/features/supply-chain/supply-chain.component.html -->
+<div class="supply-chain-container">
+    <h1>Supply Chain Analysis</h1>
+  
+    <div class="form-group">
+      <label>Origin</label>
+      <input [(ngModel)]="origin" placeholder="Enter origin..." />
+    </div>
+  
+    <div class="form-group">
+      <label>Destination</label>
+      <input [(ngModel)]="destination" placeholder="Enter destination..." />
+    </div>
+  
+    <div class="form-group">
+      <label>Produce Type</label>
+      <input [(ngModel)]="produceType" placeholder="e.g., Lettuce" />
+    </div>
+  
+    <div class="form-group">
+      <label>Weight (kg)</label>
+      <input [(ngModel)]="weightKg" type="number" />
+    </div>
+  
+    <div class="form-group">
+      <label>Transport Mode</label>
+      <select [(ngModel)]="transportMode">
+        <option value="railway">Railway</option>
+        <option value="truck">Truck</option>
+      </select>
+    </div>
+  
+    <button mat-raised-button color="primary" (click)="analyze()" [disabled]="loading">
+      {{ loading ? 'Analyzing...' : 'Analyze' }}
+    </button>
+  
+    <div class="error" *ngIf="error">{{ error }}</div>
+  
+    <div class="result" *ngIf="result">
+      <h2>Analysis Result</h2>
+      <pre>{{ result | json }}</pre>
+    </div>
+  </div>
+  
+
+----- src/app/features/supply-chain/supply-chain.module.ts -----
+// src/app/features/supply-chain/supply-chain.module.ts
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { SupplyChainComponent } from './supply-chain.component';
+import { FormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatInputModule } from '@angular/material/input';
+
+const routes: Routes = [
+  { path: '', component: SupplyChainComponent }
+];
+
+@NgModule({
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule.forChild(routes),
+    MatButtonModule,
+    MatInputModule,
+    SupplyChainComponent
+  ]
+})
+export class SupplyChainModule {}
+
+
+----- src/app/features/supply-chain/supply-chain.component.ts -----
+// src/app/features/supply-chain/supply-chain.component.ts
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+
+@Component({
+  selector: 'app-supply-chain',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './supply-chain.component.html',
+  styleUrls: ['./supply-chain.component.scss']
+})
+export class SupplyChainComponent {
+  origin = '';
+  destination = '';
+  produceType = '';
+  weightKg = 0;
+  transportMode = 'railway';
+  result: any = null;
+  loading = false;
+  error: string | null = null;
+
+  constructor(private http: HttpClient) {}
+
+  analyze() {
+    this.loading = true;
+    this.error = null;
+    this.result = null;
+
+    const payload = {
+      origin: this.origin,
+      destination: this.destination,
+      produce_type: this.produceType,
+      weight_kg: this.weightKg,
+      transport_mode: this.transportMode
+    };
+
+    this.http.post('http://localhost:8000/api/v1/supply_chain', payload)
+      .subscribe({
+        next: (res) => {
+          this.result = res;
+          this.loading = false;
+        },
+        error: (err) => {
+          console.error('Supply chain analysis failed:', err);
+          this.error = 'Supply chain analysis failed.';
+          this.loading = false;
+        }
+      });
+  }
+}
+
+
 ----- src/app/features/monitoring/monitoring.module.ts -----
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -2839,23 +3019,75 @@ export class MonitoringModule { }
 
 
 ----- src/app/features/monitoring/components/monitoring-dashboard/monitoring-dashboard.component.html -----
-<p>monitoring-dashboard works!</p>
-
+<!-- src/app/features/monitoring/components/monitoring-dashboard/monitoring-dashboard.component.html -->
+<div class="monitoring-container">
+    <h2>Monitoring Dashboard</h2>
+  
+    <div class="form-group">
+      <label>Device ID:</label>
+      <input type="number" [(ngModel)]="deviceId" />
+      <button (click)="fetchSensorData()">Fetch Sensor Data</button>
+    </div>
+  
+    <div *ngIf="isLoading">Loading sensor data...</div>
+    <div *ngIf="error" style="color:red">{{ error }}</div>
+  
+    <div *ngIf="sensorData">
+      <h3>Sensor Data</h3>
+      <pre>{{ sensorData | json }}</pre>
+    </div>
+  </div>
+  
 
 ----- src/app/features/monitoring/components/monitoring-dashboard/monitoring-dashboard.component.scss -----
 
 
 ----- src/app/features/monitoring/components/monitoring-dashboard/monitoring-dashboard.component.ts -----
-import { Component } from '@angular/core';
+// src/app/features/monitoring/components/monitoring-dashboard/monitoring-dashboard.component.ts
+import { Component, OnInit } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-monitoring-dashboard',
-  imports: [],
+  standalone: true,
+  imports: [CommonModule,FormsModule],
   templateUrl: './monitoring-dashboard.component.html',
-  styleUrl: './monitoring-dashboard.component.scss'
+  styleUrls: ['./monitoring-dashboard.component.scss']
 })
-export class MonitoringDashboardComponent {
+export class MonitoringDashboardComponent implements OnInit {
+  deviceId = 0;
+  sensorData: any = null;
+  isLoading = false;
+  error: string | null = null;
 
+  constructor(private http: HttpClient) {}
+
+  ngOnInit(): void {}
+
+  fetchSensorData() {
+    if (!this.deviceId) {
+      this.error = 'Please enter a valid Device ID';
+      return;
+    }
+    this.isLoading = true;
+    this.error = null;
+    this.sensorData = null;
+
+    this.http.get(`http://localhost:8000/api/v1/devices/sensoreading/${this.deviceId}`)
+      .subscribe({
+        next: (data) => {
+          this.sensorData = data;
+          this.isLoading = false;
+        },
+        error: (err) => {
+          console.error('Error fetching sensor data:', err);
+          this.error = 'Could not fetch sensor data';
+          this.isLoading = false;
+        }
+      });
+  }
 }
 
 
@@ -2883,6 +3115,75 @@ describe('MonitoringDashboardComponent', () => {
     expect(component).toBeTruthy();
   });
 });
+
+
+----- src/app/features/login/login.component.ts -----
+// src/app/features/login/login.component.ts
+import { Component } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { AuthService } from '../../services/auth.service';
+import { Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
+import { MatInputModule } from '@angular/material/input';
+
+@Component({
+  selector: 'app-login',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, MatInputModule, MatButtonModule],
+  template: `
+    <div class="login-container">
+      <h2>Login</h2>
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Email</mat-label>
+          <input matInput formControlName="email" placeholder="user@example.com">
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Password</mat-label>
+          <input matInput type="password" formControlName="password" placeholder="Enter password">
+        </mat-form-field>
+        <button mat-raised-button color="primary" type="submit" [disabled]="loginForm.invalid">
+          Login
+        </button>
+      </form>
+    </div>
+  `,
+  styles: [`
+    .login-container { max-width: 400px; margin: 2rem auto; padding: 2rem; border: 1px solid #ddd; border-radius: 8px; }
+    .full-width { width: 100%; }
+  `]
+})
+export class LoginComponent {
+  loginForm: FormGroup;
+  constructor(private fb: FormBuilder, private authService: AuthService, private router: Router) {
+    this.loginForm = this.fb.group({
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', Validators.required]
+    });
+  }
+  onSubmit(): void {
+    if (this.loginForm.valid) {
+      const formData = new FormData();
+      formData.append('username', this.loginForm.value.email);
+      formData.append('password', this.loginForm.value.password);
+      this.authService.login(formData).subscribe({
+        next: (response) => {
+          localStorage.setItem('access_token', response.access_token);
+          // After login, load the current user details and navigate to the dashboard
+          this.authService.getCurrentUser().subscribe(user => {
+            this.authService.setCurrentUser(user);
+            this.router.navigate(['/dashboard']);
+          });
+        },
+        error: err => {
+          console.error('Login failed:', err);
+          // Show error message as needed.
+        }
+      });
+    }
+  }
+}
 
 
 ----- src/app/features/devices/device.interface.ts -----
@@ -3011,50 +3312,41 @@ export class DevicesModule { }
   <div class="header">
     <h2>Device Discovery</h2>
     <div class="ip-check">
-      <!-- Input for entering the device IP -->
-      <input matInput 
-             placeholder="Enter device IP" 
-             [(ngModel)]="ipToCheck" 
+      <input matInput placeholder="Enter device IP" [(ngModel)]="ipToCheck"
              style="margin-right: 10px; max-width: 200px;" />
-      <!-- Button triggers the device check -->
-      <button mat-raised-button 
-              color="primary" 
-              (click)="checkDevice()" 
-              [disabled]="isChecking">
+      <button mat-raised-button color="primary" (click)="checkDevice()" [disabled]="isChecking">
         <mat-icon>search</mat-icon>
         {{ isChecking ? 'Checking...' : 'Check Device' }}
+      </button>
+      <button mat-raised-button color="accent" style="margin-left:10px;" (click)="autoDiscoverAll()"
+              [disabled]="isChecking">
+        <mat-icon>refresh</mat-icon>
+        {{ isChecking ? 'Discovering...' : 'Auto Discover All' }}
       </button>
     </div>
   </div>
 
   <div class="content">
-    <mat-progress-spinner *ngIf="isChecking"
-                           mode="indeterminate"
-                           diameter="50">
-    </mat-progress-spinner>
-
-    <div *ngIf="error" class="error-message">
-      {{ error }}
+    <!-- Show a determinate progress bar with event count and percentage -->
+    <div *ngIf="isChecking">
+      <mat-progress-bar mode="determinate" [value]="progressPercentage"></mat-progress-bar>
+      <div style="text-align: center; margin-top: 5px;">
+        {{ discoveredCount }} / {{ totalCount }} events received ({{ progressPercentage }}%)
+      </div>
     </div>
 
-    <div *ngIf="!isChecking && !discoveredDevice" class="no-devices">
-      No device found. Enter an IP and click “Check Device.”
-    </div>
-
-    <div *ngIf="discoveredDevice" class="device-card">
+    <!-- Display discovered device (if checkDevice() was used) -->
+    <div *ngIf="!isChecking && discoveredDevice" class="device-card">
       <mat-card>
         <mat-card-header>
           <mat-card-title>{{ discoveredDevice.name || 'Unknown Device' }}</mat-card-title>
           <mat-card-subtitle>{{ discoveredDevice.type || 'Unknown Type' }}</mat-card-subtitle>
         </mat-card-header>
-        
         <mat-card-content>
-          <p>ID: {{ discoveredDevice.id || discoveredDevice.device_id }}</p>
+          <p>ID: {{ discoveredDevice.id }}</p>
           <p>Status: {{ discoveredDevice.status || 'Online' }}</p>
           <p>IP: {{ discoveredDevice.ip }}</p>
-          <!-- Add more device details as needed -->
         </mat-card-content>
-  
         <mat-card-actions align="end">
           <button mat-button color="primary" (click)="configureDevice(discoveredDevice)">
             Configure
@@ -3062,38 +3354,76 @@ export class DevicesModule { }
         </mat-card-actions>
       </mat-card>
     </div>
+
+    <!-- Display discovered devices (list) that are not yet stored -->
+    <div *ngIf="!isChecking && discoveredDevices.length" class="discovered-all">
+      <h3>Newly Discovered Devices</h3>
+      <div *ngFor="let dev of discoveredDevices" style="margin-bottom: 10px;">
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>{{ dev.name || 'Unnamed' }}</mat-card-title>
+            <mat-card-subtitle>{{ dev.type || 'Unknown Type' }}</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <p>ID: {{ dev.device_id || dev.id }}</p>
+            <p>Status: {{ dev.status || 'Unknown' }}</p>
+            <p>IP: {{ dev.ip }}</p>
+          </mat-card-content>
+          <mat-card-actions>
+            <button mat-button color="accent" (click)="configureDevice(dev)">Configure</button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+    </div>
+
+    <!-- Display stored devices -->
+    <div *ngIf="!isChecking && storedDevices.length" class="stored-devices">
+      <h3>Stored Devices</h3>
+      <div *ngFor="let stored of storedDevices" style="margin-bottom: 10px;">
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>{{ stored.name || 'Unnamed' }}</mat-card-title>
+            <mat-card-subtitle>{{ stored.type || 'Unknown Type' }}</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <p>ID: {{ stored.device_id || stored.id }}</p>
+            <p>Status: {{ stored.status || 'Unknown' }}</p>
+            <p>IP: {{ stored.ip }}</p>
+          </mat-card-content>
+          <mat-card-actions>
+            <button mat-button color="accent" (click)="configureDevice(stored)">Configure</button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+    </div>
+
+    <!-- Show error message if any -->
+    <div *ngIf="error" class="error-message">
+      {{ error }}
+    </div>
+
+    <!-- Message when no devices are found -->
+    <div *ngIf="!isChecking && !discoveredDevice && !discoveredDevices.length && !storedDevices.length && !error" class="no-devices">
+      No device found. Enter an IP or use “Auto Discover All.”
+    </div>
   </div>
 </div>
 
 
 ----- src/app/features/devices/components/device-discovery/device-discovery.component.ts -----
-import { Component, OnInit, Injectable } from '@angular/core';
+import { Component, OnInit, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatIconModule } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatIcon } from '@angular/material/icon';
+
+import { DeviceService } from '../../../../services/device.service';
 import { DeviceConfigurationDialogComponent } from '../device-configuration-dialog/device-configuration-dialog.component';
-import { FormsModule } from '@angular/forms';
-
-/**
- * Minimal DeviceService to check a device by IP.
- */
-@Injectable({
-  providedIn: 'root'
-})
-export class DeviceService {
-  constructor(private http: HttpClient) {}
-
-  checkDevice(ip: string): Observable<any> {
-    // Calls the backend endpoint /api/v1/devices/discover with ?ip=<ip>
-    return this.http.get('/api/v1/devices/discover', { params: { ip } });
-  }
-}
 
 @Component({
   selector: 'app-device-discovery',
@@ -3102,33 +3432,35 @@ export class DeviceService {
   standalone: true,
   imports: [
     CommonModule,
-    HttpClientModule,
     FormsModule,
     MatCardModule,
     MatButtonModule,
     MatProgressSpinnerModule,
-    MatIcon
+    MatProgressBarModule,
+    MatIconModule
   ]
 })
 export class DeviceDiscoveryComponent implements OnInit {
-  // Holds the discovered device (if any)
   discoveredDevice: any = null;
-  // For showing error messages
+  // List of devices discovered via SSE that are not yet stored.
+  discoveredDevices: any[] = [];
+  // List of devices already stored in the DB.
+  storedDevices: any[] = [];
+  discoveredCount: number = 0;
+  totalCount: number = 0;
+  progressPercentage: number = 0;
   error: string | null = null;
-  // Indicates if a check is in progress
-  isChecking = false;
-  // Bound to the input field for entering an IP address
+  isChecking: boolean = false;
   ipToCheck: string = '';
 
   constructor(
     private deviceService: DeviceService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private zone: NgZone  // Inject NgZone to run updates inside Angular's zone
   ) {}
 
-  ngOnInit(): void {
-    // Waiting for user input; no auto-check by default.
-  }
+  ngOnInit(): void {}
 
   checkDevice(): void {
     if (!this.ipToCheck.trim()) {
@@ -3139,22 +3471,104 @@ export class DeviceDiscoveryComponent implements OnInit {
     this.error = null;
     this.discoveredDevice = null;
     this.deviceService.checkDevice(this.ipToCheck.trim()).subscribe({
-      next: (response) => {
-        if (response && response.id) {
-          this.discoveredDevice = response;
-          this.snackBar.open('Device found!', 'Close', { duration: 3000 });
-        } else {
-          this.snackBar.open('No device found at that IP', 'Close', { duration: 3000 });
-        }
+      next: (response: any) => {
+        // Run inside zone to trigger change detection.
+        this.zone.run(() => {
+          if (response && response.id) {
+            this.discoveredDevice = response;
+            this.snackBar.open('Device found!', 'Close', { duration: 3000 });
+          } else {
+            this.snackBar.open('No device found at that IP', 'Close', { duration: 3000 });
+          }
+        });
       },
-      
-      error: (err) => {
-        this.error = 'Failed to check device';
-        this.snackBar.open('Error checking device', 'Close', { duration: 3000 });
-        console.error('Device check error:', err);
+      error: (err: any) => {
+        this.zone.run(() => {
+          this.error = 'Failed to check device';
+          this.snackBar.open('Error checking device', 'Close', { duration: 3000 });
+          console.error('Device check error:', err);
+        });
       },
       complete: () => {
-        this.isChecking = false;
+        this.zone.run(() => {
+          this.isChecking = false;
+        });
+      }
+    });
+  }
+
+  autoDiscoverAll(): void {
+    this.isChecking = true;
+    this.error = null;
+    // Reset lists and counts.
+    this.discoveredDevices = [];
+    this.storedDevices = [];
+    this.discoveredCount = 0;
+    this.totalCount = 0;
+    this.progressPercentage = 0;
+
+    this.deviceService.discoverAllDevicesStream().subscribe({
+      next: (data: any) => {
+        // Wrap SSE event handling in zone.run to update UI dynamically.
+        this.zone.run(() => {
+          console.log('SSE event received:', data);
+          if (data.eventCount !== undefined && data.total !== undefined) {
+            this.discoveredCount = data.eventCount;
+            this.totalCount = data.total;
+            this.progressPercentage = parseFloat(
+              ((this.discoveredCount / this.totalCount) * 100).toFixed(1)
+            );
+          }
+          if (data.device) {
+            // Add device if not already present.
+            if (!this.discoveredDevices.find((d) => d.ip === data.device.ip)) {
+              this.discoveredDevices.push(data.device);
+            }
+          }
+          if (data.discovered_devices) {
+            // Final event: update the discovered list.
+            this.discoveredDevices = data.discovered_devices;
+            this.progressPercentage = 100;
+          }
+        });
+      },
+      error: (err: any) => {
+        this.zone.run(() => {
+          console.error('Discovery error:', err);
+          if (this.totalCount === 0) {
+            this.error = 'Error during discovery';
+            this.snackBar.open('Error during discovery', 'Close', { duration: 3000 });
+          }
+          this.isChecking = false;
+        });
+      },
+      complete: () => {
+        this.zone.run(() => {
+          this.snackBar.open(`${this.discoveredDevices.length} devices discovered!`, 'Close', { duration: 3000 });
+          this.isChecking = false;
+          // Once discovery is complete, fetch stored devices from the DB.
+          this.fetchStoredDevices();
+        });
+      }
+    });
+  }
+
+  /**
+   * Fetch devices that are already stored in the database.
+   * Remove any that are already present from the discoveredDevices list.
+   */
+  fetchStoredDevices(): void {
+    this.deviceService.getDevices().subscribe({
+      next: (stored: any[]) => {
+        this.storedDevices = stored || [];
+        // Filter out devices from discoveredDevices that are already stored (match by IP).
+        this.discoveredDevices = this.discoveredDevices.filter(
+          dev => !this.storedDevices.find(storedDev => storedDev.ip === dev.ip)
+        );
+      },
+      error: (err) => {
+        console.error('Error fetching stored devices:', err);
+        this.snackBar.open('Error fetching stored devices', 'Close', { duration: 3000 });
       }
     });
   }
@@ -3164,11 +3578,12 @@ export class DeviceDiscoveryComponent implements OnInit {
       width: '600px',
       data: { device }
     });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.snackBar.open('Device configured successfully', 'Close', { duration: 3000 });
-      }
+    dialogRef.afterClosed().subscribe((result: any) => {
+      this.zone.run(() => {
+        if (result) {
+          this.snackBar.open('Device configured successfully', 'Close', { duration: 3000 });
+        }
+      });
     });
   }
 }
@@ -3757,61 +4172,63 @@ export class FarmService {
 
 
 ----- src/app/services/auth.service.ts -----
+// src/app/services/auth.service.ts
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
+
 export interface User {
   id: number;
   email: string;
   first_name?: string;
   last_name?: string;
   role: 'user' | 'admin';
-  // additional fields…
 }
+
 @Injectable({
   providedIn: 'root'
 })
-
 export class AuthService {
-  // In a real app, these values would be set on login and decoded from the JWT.
-  private currentUser: User | null = null;
-  private baseUrl = 'http://localhost:8000/api/v1/auth';
+  // Update baseUrl for authentication endpoints.
+  private baseUrl = 'http://localhost:8000';
+
   constructor(private http: HttpClient) {}
+
+  // Login now posts to "/login" (expects form-data).
   login(formData: FormData): Observable<{ access_token: string; token_type: string }> {
     return this.http.post<{ access_token: string; token_type: string }>(`${this.baseUrl}/login`, formData);
   }
 
+  // Signup endpoint is now at "/signup"
   signup(userData: any): Observable<User> {
     return this.http.post<User>(`${this.baseUrl}/signup`, userData);
   }
 
+  // These remain under the "/api/v1" namespace.
   getCurrentUser(): Observable<User> {
-    return this.http.get<User>(`${this.baseUrl}/users/me`);
+    return this.http.get<User>(`${this.baseUrl}/api/v1/users/me`);
   }
 
   updateCurrentUser(updateData: any): Observable<User> {
-    return this.http.put<User>(`${this.baseUrl}/users/me`, updateData);
+    return this.http.put<User>(`${this.baseUrl}/api/v1/users/me`, updateData);
   }
 
-  // Admin impersonation: get a token for a different user
+  // For admin impersonation, call the endpoint directly (no extra "/api/v1")
   impersonateUser(userId: number): Observable<{ access_token: string }> {
     return this.http.post<{ access_token: string }>(`${this.baseUrl}/admin/users/impersonate/${userId}`, {});
   }
 
-  // For demo purposes, we hardcode a user. In a real app, this would be set on login.
+  // Helper methods for user state…
+  private currentUser: User | null = null;
   isAdmin(): boolean {
     return this.currentUser ? this.currentUser.role === 'admin' : false;
   }
-
   setCurrentUser(user: User) {
     this.currentUser = user;
   }
-
   getCurrentUserId(): number | null {
     return this.currentUser ? this.currentUser.id : null;
   }
-
-  // Optionally add login/logout methods and user state management here.
 }
 
 
@@ -3836,52 +4253,102 @@ export class DeviceService {
     private authService: AuthService
   ) {}
 
+  // Choose the API URL based on the connection mode.
   private get apiUrl(): string {
     return this.config.connectionMode === 'LAN' ? LAN_URL : CLOUD_URL;
   }
 
-  discoverDevices(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/devices/discover`);
+  /**
+   * Stream discovery progress via Server-Sent Events (SSE).
+   * Returns an Observable that emits each SSE event (parsed as JSON).
+   */
+  discoverAllDevicesStream(): Observable<any> {
+    return new Observable(observer => {
+      const eventSource = new EventSource(`${this.apiUrl}/devices/discover-all`);
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          observer.next(data);
+        } catch (error) {
+          console.error('Error parsing SSE data', error);
+          observer.error(error);
+          eventSource.close();
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        console.error('EventSource encountered an error', error);
+        observer.error(error);
+        eventSource.close();
+      };
+
+      // Cleanup on unsubscription.
+      return () => {
+        eventSource.close();
+      };
+    });
   }
 
-  // New: Automatically discover all registered and reachable devices
+  /**
+   * Automatically discover all registered and reachable devices.
+   * This method makes an HTTP GET request and returns an Observable of an array.
+   */
   getAllDiscoveredDevices(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/devices/discover-all`);
   }
 
+  /**
+   * Create a device.
+   * For 'dosing_unit' devices, it uses the dosing endpoint;
+   * for sensor devices, it uses the sensor endpoint.
+   */
   createDevice(device: Device): Observable<Device> {
-    // For dosing_unit devices use the dosing endpoint, for sensors use sensor endpoint.
     const endpoint = device.type === 'dosing_unit'
       ? `${this.apiUrl}/devices/dosing`
       : `${this.apiUrl}/devices/sensor`;
     return this.http.post<Device>(endpoint, device);
   }
 
-  // Updated: Accept optional user filter (for admin view)
+  /**
+   * Get devices with an optional user filter.
+   * If the user is an admin, they can optionally filter by user_id.
+   * Otherwise, it uses the current user's id.
+   */
   getDevices(userId?: number): Observable<Device[]> {
     const params: any = {};
     if (this.authService.isAdmin()) {
       if (userId) {
         params.user_id = userId.toString();
       }
-      // Admin: get all devices or filter by user
-      return this.http.get<Device[]>(`${this.apiUrl}/devices`, { params });
     } else {
-      // Regular user: filter by current user's id
       const currentUserId = this.authService.getCurrentUserId();
       if (currentUserId) {
         params.user_id = currentUserId.toString();
       }
-      return this.http.get<Device[]>(`${this.apiUrl}/devices`, { params });
     }
+    return this.http.get<Device[]>(`${this.apiUrl}/devices`, { params });
   }
 
+  /**
+   * Get device details for a specific device by its id.
+   */
   getDeviceById(id: number): Observable<Device> {
     return this.http.get<Device>(`${this.apiUrl}/devices/${id}`);
   }
 
+  /**
+   * Register a device using the dosing endpoint.
+   */
   registerDevice(deviceData: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/devices/dosing`, deviceData);
+  }
+
+  /**
+   * Check a device by its IP.
+   */
+  checkDevice(ip: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/discover`, { params: { ip } });
   }
 }
 
@@ -3914,6 +4381,7 @@ export class HealthService {
 
 
 ----- src/app/services/plant.service.ts -----
+// src/app/services/plant.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -3933,28 +4401,26 @@ export interface Plant {
   providedIn: 'root'
 })
 export class PlantService {
-  private baseUrl = 'http://localhost:8000/api/v1/plants';  // Update this with your FastAPI URL
+  // Ensure baseUrl points exactly to "/api/v1/plants"
+  private baseUrl = 'http://localhost:8000/api/v1/plants';
 
   constructor(private http: HttpClient) {}
 
-  // ✅ GET: Fetch all plants
+  // Update: remove the extra "/plants" from the URL.
   getPlants(): Observable<Plant[]> {
-    return this.http.get<Plant[]>(`${this.baseUrl}/plants`);
+    return this.http.get<Plant[]>(`${this.baseUrl}`);
   }
 
-  // ✅ GET: Fetch a single plant by ID
   getPlantById(id: number): Observable<Plant> {
-    return this.http.get<Plant>(`${this.baseUrl}/plants/${id}`);
+    return this.http.get<Plant>(`${this.baseUrl}/${id}`);
   }
 
-  // ✅ POST: Create a new plant
   createPlant(plant: Plant): Observable<Plant> {
-    return this.http.post<Plant>(`${this.baseUrl}/plants`, plant);
+    return this.http.post<Plant>(`${this.baseUrl}`, plant);
   }
 
-  // ✅ DELETE: Remove a plant
   deletePlant(id: number): Observable<any> {
-    return this.http.delete(`${this.baseUrl}/plants/${id}`);
+    return this.http.delete(`${this.baseUrl}/${id}`);
   }
 }
 

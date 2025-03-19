@@ -1,3 +1,4 @@
+// src/app/features/dashboard/dashboard.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, NgIf, NgForOf } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -12,6 +13,7 @@ import { Observable } from 'rxjs';
 import { Device } from '../devices/device.interface';
 import { DeviceService } from '../../services/device.service';
 import { AuthService } from '../../services/auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-dashboard',
@@ -36,23 +38,29 @@ export class DashboardComponent implements OnInit {
   loading = true;
   isAdmin = false;
   selectedUserId?: number;
-  // For admin: list of users. (In a real app, fetch from backend.)
+  // Dummy admin user list; replace with API call if needed.
   users: { id: number; email: string }[] = [];
 
   constructor(
     private deviceService: DeviceService,
     private store: Store<{ app: AppState }>,
-    private authService: AuthService
+    public authService: AuthService,
+    private router: Router
   ) {
     this.devices$ = this.store.pipe(select(state => state.app.devices));
     this.isAdmin = this.authService.isAdmin();
     if (this.isAdmin) {
-      // Insert extra column "owner" after name
+      // Insert extra column "owner" after the "name" column.
       this.displayedColumns.splice(2, 0, 'owner');
     }
   }
 
   ngOnInit(): void {
+    // Redirect to login if not authenticated.
+    if (!this.authService.getCurrentUserId()) {
+      this.router.navigate(['/login']);
+      return;
+    }
     if (this.isAdmin) {
       this.fetchUsers();
     }
@@ -74,7 +82,7 @@ export class DashboardComponent implements OnInit {
   }
 
   fetchUsers(): void {
-    // Replace with a real API call to /admin/users if available.
+    // Replace with real API call to /admin/users if available.
     this.users = [
       { id: 1, email: 'user1@example.com' },
       { id: 2, email: 'user2@example.com' },
@@ -98,7 +106,6 @@ export class DashboardComponent implements OnInit {
   }
 
   viewDevice(id: number): void {
-    console.log('View device with ID:', id);
-    // Add navigation logic here (e.g., using Router.navigate)
+    this.router.navigate(['/devices', id]);
   }
 }

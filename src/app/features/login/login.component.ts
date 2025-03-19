@@ -6,6 +6,7 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
+import { HttpParams } from '@angular/common/http';
 
 @Component({
   selector: 'app-login',
@@ -23,6 +24,7 @@ import { MatInputModule } from '@angular/material/input';
           <mat-label>Password</mat-label>
           <input matInput type="password" formControlName="password" placeholder="Enter password">
         </mat-form-field>
+        <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
         <button mat-raised-button color="primary" type="submit" [disabled]="loginForm.invalid">
           Login
         </button>
@@ -30,35 +32,55 @@ import { MatInputModule } from '@angular/material/input';
     </div>
   `,
   styles: [`
-    .login-container { max-width: 400px; margin: 2rem auto; padding: 2rem; border: 1px solid #ddd; border-radius: 8px; }
+    .login-container { 
+      max-width: 400px; 
+      margin: 2rem auto; 
+      padding: 2rem; 
+      border: 1px solid #ddd; 
+      border-radius: 8px; 
+    }
     .full-width { width: 100%; }
+    .error-message { 
+      color: red; 
+      margin-bottom: 1rem; 
+      font-size: 0.9rem; 
+    }
   `]
 })
 export class LoginComponent {
   loginForm: FormGroup;
+  errorMessage: string = '';
+  
   constructor(private fb: FormBuilder, private authService: AuthService, private router: Router) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required]
     });
   }
+  
   onSubmit(): void {
     if (this.loginForm.valid) {
-      const formData = new FormData();
-      formData.append('username', this.loginForm.value.email);
-      formData.append('password', this.loginForm.value.password);
-      this.authService.login(formData).subscribe({
+      const params = new HttpParams()
+        .set('username', this.loginForm.value.email)
+        .set('password', this.loginForm.value.password);
+      
+      this.authService.login(params).subscribe({
         next: (response) => {
           localStorage.setItem('access_token', response.access_token);
-          // After login, load the current user details and navigate to the dashboard
-          this.authService.getCurrentUser().subscribe(user => {
-            this.authService.setCurrentUser(user);
-            this.router.navigate(['/dashboard']);
+          this.authService.getCurrentUser().subscribe({
+            next: user => {
+              this.authService.setCurrentUser(user);
+              this.router.navigate(['/dashboard']);
+            },
+            error: err => {
+              this.errorMessage = 'Failed to load user details.';
+              console.error('Error fetching user details:', err);
+            }
           });
         },
         error: err => {
           console.error('Login failed:', err);
-          // Show error message as needed.
+          this.errorMessage = err.error?.detail || 'Login failed. Please check your credentials.';
         }
       });
     }

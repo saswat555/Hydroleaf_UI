@@ -2,56 +2,99 @@
   <div class="header">
     <h2>Device Discovery</h2>
     <div class="ip-check">
-      <!-- Input for entering the device IP -->
-      <input matInput 
-             placeholder="Enter device IP" 
-             [(ngModel)]="ipToCheck" 
+      <input matInput placeholder="Enter device IP" [(ngModel)]="ipToCheck"
              style="margin-right: 10px; max-width: 200px;" />
-      <!-- Button triggers the device check -->
-      <button mat-raised-button 
-              color="primary" 
-              (click)="checkDevice()" 
-              [disabled]="isChecking">
+      <button mat-raised-button color="primary" (click)="checkDevice()" [disabled]="isChecking">
         <mat-icon>search</mat-icon>
         {{ isChecking ? 'Checking...' : 'Check Device' }}
+      </button>
+      <button mat-raised-button color="accent" style="margin-left:10px;" (click)="autoDiscoverAll()"
+              [disabled]="isChecking">
+        <mat-icon>refresh</mat-icon>
+        {{ isChecking ? 'Discovering...' : 'Auto Discover All' }}
       </button>
     </div>
   </div>
 
   <div class="content">
-    <mat-progress-spinner *ngIf="isChecking"
-                           mode="indeterminate"
-                           diameter="50">
-    </mat-progress-spinner>
-
-    <div *ngIf="error" class="error-message">
-      {{ error }}
+    <!-- Show a determinate progress bar with event count and percentage -->
+    <div *ngIf="isChecking">
+      <mat-progress-bar mode="determinate" [value]="progressPercentage"></mat-progress-bar>
+      <div style="text-align: center; margin-top: 5px;">
+        {{ discoveredCount }} / {{ totalCount }} events received ({{ progressPercentage }}%)
+      </div>
     </div>
 
-    <div *ngIf="!isChecking && !discoveredDevice" class="no-devices">
-      No device found. Enter an IP and click “Check Device.”
-    </div>
-
-    <div *ngIf="discoveredDevice" class="device-card">
+    <!-- Display discovered device (if checkDevice() was used) -->
+    <div *ngIf="!isChecking && discoveredDevice" class="device-card">
       <mat-card>
         <mat-card-header>
           <mat-card-title>{{ discoveredDevice.name || 'Unknown Device' }}</mat-card-title>
           <mat-card-subtitle>{{ discoveredDevice.type || 'Unknown Type' }}</mat-card-subtitle>
         </mat-card-header>
-        
         <mat-card-content>
-          <p>ID: {{ discoveredDevice.id || discoveredDevice.device_id }}</p>
+          <p>ID: {{ discoveredDevice.id }}</p>
           <p>Status: {{ discoveredDevice.status || 'Online' }}</p>
           <p>IP: {{ discoveredDevice.ip }}</p>
-          <!-- Add more device details as needed -->
         </mat-card-content>
-  
         <mat-card-actions align="end">
           <button mat-button color="primary" (click)="configureDevice(discoveredDevice)">
             Configure
           </button>
         </mat-card-actions>
       </mat-card>
+    </div>
+
+    <!-- Display discovered devices (list) that are not yet stored -->
+    <div *ngIf="!isChecking && discoveredDevices.length" class="discovered-all">
+      <h3>Newly Discovered Devices</h3>
+      <div *ngFor="let dev of discoveredDevices" style="margin-bottom: 10px;">
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>{{ dev.name || 'Unnamed' }}</mat-card-title>
+            <mat-card-subtitle>{{ dev.type || 'Unknown Type' }}</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <p>ID: {{ dev.device_id || dev.id }}</p>
+            <p>Status: {{ dev.status || 'Unknown' }}</p>
+            <p>IP: {{ dev.ip }}</p>
+          </mat-card-content>
+          <mat-card-actions>
+            <button mat-button color="accent" (click)="configureDevice(dev)">Configure</button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+    </div>
+
+    <!-- Display stored devices -->
+    <div *ngIf="!isChecking && storedDevices.length" class="stored-devices">
+      <h3>Stored Devices</h3>
+      <div *ngFor="let stored of storedDevices" style="margin-bottom: 10px;">
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>{{ stored.name || 'Unnamed' }}</mat-card-title>
+            <mat-card-subtitle>{{ stored.type || 'Unknown Type' }}</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <p>ID: {{ stored.device_id || stored.id }}</p>
+            <p>Status: {{ stored.status || 'Unknown' }}</p>
+            <p>IP: {{ stored.ip }}</p>
+          </mat-card-content>
+          <mat-card-actions>
+            <button mat-button color="accent" (click)="configureDevice(stored)">Configure</button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+    </div>
+
+    <!-- Show error message if any -->
+    <div *ngIf="error" class="error-message">
+      {{ error }}
+    </div>
+
+    <!-- Message when no devices are found -->
+    <div *ngIf="!isChecking && !discoveredDevice && !discoveredDevices.length && !storedDevices.length && !error" class="no-devices">
+      No device found. Enter an IP or use “Auto Discover All.”
     </div>
   </div>
 </div>

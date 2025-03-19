@@ -1,14 +1,14 @@
 // src/app/services/auth.service.ts
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 
 export interface User {
   id: number;
   email: string;
   first_name?: string;
   last_name?: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'superadmin';
 }
 
 @Injectable({
@@ -18,41 +18,59 @@ export class AuthService {
   // Update baseUrl for authentication endpoints.
   private baseUrl = 'http://localhost:8000';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
-  // Login now posts to "/login" (expects form-data).
-  login(formData: FormData): Observable<{ access_token: string; token_type: string }> {
-    return this.http.post<{ access_token: string; token_type: string }>(`${this.baseUrl}/login`, formData);
+  // Login now posts to "/api/v1/auth/login" and expects URL‑encoded parameters.
+  login(params: HttpParams): Observable<{ access_token: string; token_type: string }> {
+    return this.http.post<{ access_token: string; token_type: string }>(
+      `${this.baseUrl}/api/v1/auth/login`,
+      params
+    );
   }
 
-  // Signup endpoint is now at "/signup"
   signup(userData: any): Observable<User> {
-    return this.http.post<User>(`${this.baseUrl}/signup`, userData);
+    return this.http.post<User>(`${this.baseUrl}/api/v1/auth/signup`, userData);
   }
 
-  // These remain under the "/api/v1" namespace.
+  // In getCurrentUser we attach the token in the Authorization header.
   getCurrentUser(): Observable<User> {
-    return this.http.get<User>(`${this.baseUrl}/api/v1/users/me`);
+    const token = localStorage.getItem('access_token');
+    const headers = token ? new HttpHeaders().set('Authorization', `Bearer ${token}`) : undefined;
+    return this.http.get<User>(`${this.baseUrl}/api/v1/users/me`, { headers });
   }
 
   updateCurrentUser(updateData: any): Observable<User> {
-    return this.http.put<User>(`${this.baseUrl}/api/v1/users/me`, updateData);
+    const token = localStorage.getItem('access_token');
+    const headers = token ? new HttpHeaders().set('Authorization', `Bearer ${token}`) : undefined;
+    return this.http.put<User>(`${this.baseUrl}/api/v1/users/me`, updateData, { headers });
   }
 
-  // For admin impersonation, call the endpoint directly (no extra "/api/v1")
   impersonateUser(userId: number): Observable<{ access_token: string }> {
-    return this.http.post<{ access_token: string }>(`${this.baseUrl}/admin/users/impersonate/${userId}`, {});
+    return this.http.post<{ access_token: string }>(
+      `${this.baseUrl}/admin/users/impersonate/${userId}`,
+      {}
+    );
   }
 
   // Helper methods for user state…
   private currentUser: User | null = null;
+
   isAdmin(): boolean {
-    return this.currentUser ? this.currentUser.role === 'admin' : false;
+    return this.currentUser
+      ? this.currentUser.role === 'admin' || this.currentUser.role === 'superadmin'
+      : false;
   }
+
   setCurrentUser(user: User) {
     this.currentUser = user;
   }
+
   getCurrentUserId(): number | null {
     return this.currentUser ? this.currentUser.id : null;
+  }
+
+  logout(): void {
+    localStorage.removeItem('access_token');
+    this.currentUser = null;
   }
 }

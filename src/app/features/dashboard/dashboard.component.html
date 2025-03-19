@@ -3,6 +3,9 @@
     <div class="header-content">
       <i class="header-icon lucide-server"></i>
       <h1>Device Dashboard</h1>
+      <div *ngIf="authService.isAdmin()" class="admin-banner">
+        You are in ADMIN mode
+      </div>
       <!-- Admin-only: user filter dropdown -->
       <ng-container *ngIf="isAdmin">
         <select (change)="onUserChange($event)" style="margin-left: 20px;">

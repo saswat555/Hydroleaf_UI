@@ -1,1 +1,19 @@
-<p>monitoring-dashboard works!</p>
+<!-- src/app/features/monitoring/components/monitoring-dashboard/monitoring-dashboard.component.html -->
+<div class="monitoring-container">
+    <h2>Monitoring Dashboard</h2>
+  
+    <div class="form-group">
+      <label>Device ID:</label>
+      <input type="number" [(ngModel)]="deviceId" />
+      <button (click)="fetchSensorData()">Fetch Sensor Data</button>
+    </div>
+  
+    <div *ngIf="isLoading">Loading sensor data...</div>
+    <div *ngIf="error" style="color:red">{{ error }}</div>
+  
+    <div *ngIf="sensorData">
+      <h3>Sensor Data</h3>
+      <pre>{{ sensorData | json }}</pre>
+    </div>
+  </div>
+  

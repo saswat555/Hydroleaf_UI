@@ -1,31 +1,16 @@
-import { Component, OnInit, Injectable } from '@angular/core';
+import { Component, OnInit, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatIconModule } from '@angular/material/icon';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatIcon } from '@angular/material/icon';
+
+import { DeviceService } from '../../../../services/device.service';
 import { DeviceConfigurationDialogComponent } from '../device-configuration-dialog/device-configuration-dialog.component';
-import { FormsModule } from '@angular/forms';
-
-
-/**
- * Minimal DeviceService to check a device by IP.
- */
-@Injectable({
-  providedIn: 'root'
-})
-export class DeviceService {
-  constructor(private http: HttpClient) {}
-  apiUrl = "http://localhost:5000";
-  checkDevice(ip: string): Observable<any> {
-  // Ensure the query parameter is correctly passed
-  return this.http.get(`${this.apiUrl}/devices/discover`, { params: { ip } });
-}
-}
 
 @Component({
   selector: 'app-device-discovery',
@@ -34,33 +19,35 @@ export class DeviceService {
   standalone: true,
   imports: [
     CommonModule,
-    HttpClientModule,
     FormsModule,
     MatCardModule,
     MatButtonModule,
     MatProgressSpinnerModule,
-    MatIcon
+    MatProgressBarModule,
+    MatIconModule
   ]
 })
 export class DeviceDiscoveryComponent implements OnInit {
-  // Holds the discovered device (if any)
   discoveredDevice: any = null;
-  // For showing error messages
+  // List of devices discovered via SSE that are not yet stored.
+  discoveredDevices: any[] = [];
+  // List of devices already stored in the DB.
+  storedDevices: any[] = [];
+  discoveredCount: number = 0;
+  totalCount: number = 0;
+  progressPercentage: number = 0;
   error: string | null = null;
-  // Indicates if a check is in progress
-  isChecking = false;
-  // Bound to the input field for entering an IP address
+  isChecking: boolean = false;
   ipToCheck: string = '';
 
   constructor(
     private deviceService: DeviceService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private zone: NgZone  // Inject NgZone to run updates inside Angular's zone
   ) {}
 
-  ngOnInit(): void {
-    // Waiting for user input; no auto-check by default.
-  }
+  ngOnInit(): void {}
 
   checkDevice(): void {
     if (!this.ipToCheck.trim()) {
@@ -71,22 +58,104 @@ export class DeviceDiscoveryComponent implements OnInit {
     this.error = null;
     this.discoveredDevice = null;
     this.deviceService.checkDevice(this.ipToCheck.trim()).subscribe({
-      next: (response) => {
-        if (response && response.id) {
-          this.discoveredDevice = response;
-          this.snackBar.open('Device found!', 'Close', { duration: 3000 });
-        } else {
-          this.snackBar.open('No device found at that IP', 'Close', { duration: 3000 });
-        }
+      next: (response: any) => {
+        // Run inside zone to trigger change detection.
+        this.zone.run(() => {
+          if (response && response.id) {
+            this.discoveredDevice = response;
+            this.snackBar.open('Device found!', 'Close', { duration: 3000 });
+          } else {
+            this.snackBar.open('No device found at that IP', 'Close', { duration: 3000 });
+          }
+        });
       },
-      
-      error: (err) => {
-        this.error = 'Failed to check device';
-        this.snackBar.open('Error checking device', 'Close', { duration: 3000 });
-        console.error('Device check error:', err);
+      error: (err: any) => {
+        this.zone.run(() => {
+          this.error = 'Failed to check device';
+          this.snackBar.open('Error checking device', 'Close', { duration: 3000 });
+          console.error('Device check error:', err);
+        });
       },
       complete: () => {
-        this.isChecking = false;
+        this.zone.run(() => {
+          this.isChecking = false;
+        });
+      }
+    });
+  }
+
+  autoDiscoverAll(): void {
+    this.isChecking = true;
+    this.error = null;
+    // Reset lists and counts.
+    this.discoveredDevices = [];
+    this.storedDevices = [];
+    this.discoveredCount = 0;
+    this.totalCount = 0;
+    this.progressPercentage = 0;
+
+    this.deviceService.discoverAllDevicesStream().subscribe({
+      next: (data: any) => {
+        // Wrap SSE event handling in zone.run to update UI dynamically.
+        this.zone.run(() => {
+          console.log('SSE event received:', data);
+          if (data.eventCount !== undefined && data.total !== undefined) {
+            this.discoveredCount = data.eventCount;
+            this.totalCount = data.total;
+            this.progressPercentage = parseFloat(
+              ((this.discoveredCount / this.totalCount) * 100).toFixed(1)
+            );
+          }
+          if (data.device) {
+            // Add device if not already present.
+            if (!this.discoveredDevices.find((d) => d.ip === data.device.ip)) {
+              this.discoveredDevices.push(data.device);
+            }
+          }
+          if (data.discovered_devices) {
+            // Final event: update the discovered list.
+            this.discoveredDevices = data.discovered_devices;
+            this.progressPercentage = 100;
+          }
+        });
+      },
+      error: (err: any) => {
+        this.zone.run(() => {
+          console.error('Discovery error:', err);
+          if (this.totalCount === 0) {
+            this.error = 'Error during discovery';
+            this.snackBar.open('Error during discovery', 'Close', { duration: 3000 });
+          }
+          this.isChecking = false;
+        });
+      },
+      complete: () => {
+        this.zone.run(() => {
+          this.snackBar.open(`${this.discoveredDevices.length} devices discovered!`, 'Close', { duration: 3000 });
+          this.isChecking = false;
+          // Once discovery is complete, fetch stored devices from the DB.
+          this.fetchStoredDevices();
+        });
+      }
+    });
+  }
+
+  /**
+   * Fetch devices that are already stored in the database.
+   * Remove any that are already present from the discoveredDevices list.
+   */
+  fetchStoredDevices(): void {
+    this.deviceService.getDevices().subscribe({
+      next: (stored: any[]) => {
+        this.storedDevices = stored || [];
+        // Filter out devices from discoveredDevices that are already stored (match by IP).
+        this.discoveredDevices = this.discoveredDevices.filter(
+          dev => !this.storedDevices.find(storedDev => storedDev.ip === dev.ip)
+        );
+      },
+      error: (err) => {
+        console.error('Error fetching stored devices:', err);
+        this.snackBar.open('Error fetching stored devices', 'Close', { duration: 3000 });
       }
     });
   }
@@ -96,11 +165,12 @@ export class DeviceDiscoveryComponent implements OnInit {
       width: '600px',
       data: { device }
     });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.snackBar.open('Device configured successfully', 'Close', { duration: 3000 });
-      }
+    dialogRef.afterClosed().subscribe((result: any) => {
+      this.zone.run(() => {
+        if (result) {
+          this.snackBar.open('Device configured successfully', 'Close', { duration: 3000 });
+        }
+      });
     });
   }
 }

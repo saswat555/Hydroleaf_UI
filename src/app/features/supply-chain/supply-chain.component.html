@@ -1,0 +1,44 @@
+<!-- src/app/features/supply-chain/supply-chain.component.html -->
+<div class="supply-chain-container">
+    <h1>Supply Chain Analysis</h1>
+  
+    <div class="form-group">
+      <label>Origin</label>
+      <input [(ngModel)]="origin" placeholder="Enter origin..." />
+    </div>
+  
+    <div class="form-group">
+      <label>Destination</label>
+      <input [(ngModel)]="destination" placeholder="Enter destination..." />
+    </div>
+  
+    <div class="form-group">
+      <label>Produce Type</label>
+      <input [(ngModel)]="produceType" placeholder="e.g., Lettuce" />
+    </div>
+  
+    <div class="form-group">
+      <label>Weight (kg)</label>
+      <input [(ngModel)]="weightKg" type="number" />
+    </div>
+  
+    <div class="form-group">
+      <label>Transport Mode</label>
+      <select [(ngModel)]="transportMode">
+        <option value="railway">Railway</option>
+        <option value="truck">Truck</option>
+      </select>
+    </div>
+  
+    <button mat-raised-button color="primary" (click)="analyze()" [disabled]="loading">
+      {{ loading ? 'Analyzing...' : 'Analyze' }}
+    </button>
+  
+    <div class="error" *ngIf="error">{{ error }}</div>
+  
+    <div class="result" *ngIf="result">
+      <h2>Analysis Result</h2>
+      <pre>{{ result | json }}</pre>
+    </div>
+  </div>
+  
