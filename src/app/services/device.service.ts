@@ -71,11 +71,14 @@ export class DeviceService {
    * for sensor devices, it uses the sensor endpoint.
    */
   createDevice(device: Device): Observable<Device> {
+    const token = localStorage.getItem('access_token');
+    const headers = token ? new HttpHeaders().set('Authorization', `Bearer ${token}`) : undefined;
     const endpoint = device.type === 'dosing_unit'
       ? `${this.apiUrl}/devices/dosing`
       : `${this.apiUrl}/devices/sensor`;
-    return this.http.post<Device>(endpoint, device);
+    return this.http.post<Device>(endpoint, device, { headers });
   }
+  
 
   /**
    * Get devices with an optional user filter.

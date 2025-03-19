@@ -4,8 +4,7 @@ import { Component } from '@angular/core';
   selector: 'app-device-detail',
   imports: [],
   templateUrl: './device-detail.component.html',
-  styleUrl: './device-detail.component.scss'
+  styleUrl: './device-detail.component.scss' // ← should be "styleUrls"
 })
-export class DeviceDetailComponent {
+export class DeviceDetailComponent { }
 
-}

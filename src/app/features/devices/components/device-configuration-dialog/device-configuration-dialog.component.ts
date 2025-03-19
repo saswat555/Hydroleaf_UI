@@ -51,10 +51,7 @@ export class DeviceConfigurationDialogComponent implements OnInit {
     this.configForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(3)]],
       type: ['', Validators.required],
-      http_endpoint: ['', [
-        Validators.required,
-        Validators.pattern('')  // ✅ Allows full URLs
-      ]],
+      http_endpoint: [''],
       location_description: [''],
       pump_configurations: this.fb.array([]),
       sensor_parameters: this.fb.group({
@@ -63,6 +60,7 @@ export class DeviceConfigurationDialogComponent implements OnInit {
         alert_thresholds: ['']
       })
     });
+    
   }
 
   get pumpConfigs(): FormArray {
@@ -73,15 +71,24 @@ export class DeviceConfigurationDialogComponent implements OnInit {
     if (this.data?.device) {
       this.configForm.patchValue(this.data.device);
     }
-
+  
+    // Instead of auto‑initializing pump configs when type is 'dosing_unit',
+    // just clear them. Let the user add pump configs manually.
     this.configForm.get('type')?.valueChanges.subscribe(type => {
-      if (type === 'dosing_unit') {
-        this.initializePumpConfigs();
-      } else {
+      if (type !== 'dosing_unit') {
         this.pumpConfigs.clear();
       }
     });
   }
+  addPumpConfig(): void {
+    const pumpGroup = this.fb.group({
+      pump_number: ['', Validators.required],
+      chemical_name: ['', Validators.required],
+      chemical_description: ['']
+    });
+    this.pumpConfigs.push(pumpGroup);
+  }
+    
 
   private initializePumpConfigs(): void {
     const pumps = this.pumpConfigs;
@@ -128,41 +135,44 @@ export class DeviceConfigurationDialogComponent implements OnInit {
     });
   }
 
-async onSubmit(): Promise<void> {
-  if (this.configForm.valid && !this.isSubmitting) {
-    this.isSubmitting = true;
-    let deviceData = { ...this.configForm.value };
-
-    if (deviceData.type === 'dosing_unit') {
-      deviceData.pump_configurations = this.pumpConfigs.value; // Ensure it's an array
-    }
-
-    try {
-      // ✅ Check if the device already exists
-      const devices = await firstValueFrom(this.deviceService.getDevices());
-      const existingDevice = devices.find(d => d.http_endpoint === deviceData.http_endpoint);
-
-      if (existingDevice) {
-        console.log("🔄 Device already exists. Registering in LLM...");
-        await firstValueFrom(this.deviceService.registerDevice(deviceData)); // Manually register in LLM
-      } else {
-        console.log("🆕 Registering new device...");
-        await firstValueFrom(this.deviceService.createDevice(deviceData));
+  async onSubmit(): Promise<void> {
+    if (this.configForm.valid && !this.isSubmitting) {
+      this.isSubmitting = true;
+      let deviceData = { ...this.configForm.value };
+  
+      if (deviceData.type === 'dosing_unit') {
+        // Filter out any pump configuration that does not have a valid chemical_name
+        deviceData.pump_configurations = this.pumpConfigs.value.filter(
+          (pump: any) => pump.chemical_name && pump.chemical_name.trim().length > 0
+        );
       }
-
-      // ✅ Successfully registered, proceed with LLM call
-      this.snackBar.open('Device registered successfully', 'Close', { duration: 3000 });
-      this.dialogRef.close(deviceData);
-
-    } catch (error) {
-      console.error('❌ Error:', error);
-      this.snackBar.open('Error registering device', 'Close', { duration: 3000 });
-    } finally {
-      this.isSubmitting = false;
+  
+      try {
+        // Check if the device already exists
+        const devices = await firstValueFrom(this.deviceService.getDevices());
+        const existingDevice = devices.find(d => d.http_endpoint === deviceData.http_endpoint);
+  
+        if (existingDevice) {
+          console.log("🔄 Device already exists. Registering in LLM...");
+          await firstValueFrom(this.deviceService.registerDevice(deviceData)); // Manually register in LLM
+        } else {
+          console.log("🆕 Registering new device...");
+          await firstValueFrom(this.deviceService.createDevice(deviceData));
+        }
+  
+        // Successfully registered
+        this.snackBar.open('Device registered successfully', 'Close', { duration: 3000 });
+        this.dialogRef.close(deviceData);
+  
+      } catch (error) {
+        console.error('❌ Error:', error);
+        this.snackBar.open('Error registering device', 'Close', { duration: 3000 });
+      } finally {
+        this.isSubmitting = false;
+      }
     }
   }
-}
-
+  
 
   onCancel(): void {
     this.dialogRef.close();

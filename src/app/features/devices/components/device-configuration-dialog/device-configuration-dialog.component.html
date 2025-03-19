@@ -60,22 +60,21 @@
         <div *ngIf="configForm.get('type')?.value === 'dosing_unit'" class="pump-configs">
           <h3>Pump Configurations</h3>
           <div formArrayName="pump_configurations">
-            <div *ngFor="let pump of pumpConfigs.controls; let i=index" 
-                 [formGroupName]="i" class="pump-config">
-              <h4>Pump {{i + 1}}</h4>
+            <div *ngFor="let pump of pumpConfigs.controls; let i = index" [formGroupName]="i" class="pump-config">
+              <h4>Pump {{ i + 1 }}</h4>
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Chemical Name</mat-label>
-                <input matInput formControlName="chemical_name" 
-                       placeholder="e.g., pH Up">
+                <input matInput formControlName="chemical_name" placeholder="e.g., pH Up">
               </mat-form-field>
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Description</mat-label>
-                <input matInput formControlName="chemical_description" 
-                       placeholder="Optional description">
+                <input matInput formControlName="chemical_description" placeholder="Optional description">
               </mat-form-field>
             </div>
           </div>
+          <button mat-button color="primary" (click)="addPumpConfig()">Add Pump Configuration</button>
         </div>
+        
 
         <!-- Sensor Parameters (shown only for sensor types) -->
         <div *ngIf="configForm.get('type')?.value.includes('sensor')" 

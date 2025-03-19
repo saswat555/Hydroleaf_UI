@@ -3899,15 +3899,24 @@ export class DeviceConfigurationDialogComponent implements OnInit {
     if (this.data?.device) {
       this.configForm.patchValue(this.data.device);
     }
-
+  
+    // Instead of auto‑initializing pump configs when type is 'dosing_unit',
+    // just clear them. Let the user add pump configs manually.
     this.configForm.get('type')?.valueChanges.subscribe(type => {
-      if (type === 'dosing_unit') {
-        this.initializePumpConfigs();
-      } else {
+      if (type !== 'dosing_unit') {
         this.pumpConfigs.clear();
       }
     });
   }
+  addPumpConfig(): void {
+    const pumpGroup = this.fb.group({
+      pump_number: ['', Validators.required],
+      chemical_name: ['', Validators.required],
+      chemical_description: ['']
+    });
+    this.pumpConfigs.push(pumpGroup);
+  }
+    
 
   private initializePumpConfigs(): void {
     const pumps = this.pumpConfigs;
@@ -3954,41 +3963,44 @@ export class DeviceConfigurationDialogComponent implements OnInit {
     });
   }
 
-async onSubmit(): Promise<void> {
-  if (this.configForm.valid && !this.isSubmitting) {
-    this.isSubmitting = true;
-    let deviceData = { ...this.configForm.value };
-
-    if (deviceData.type === 'dosing_unit') {
-      deviceData.pump_configurations = this.pumpConfigs.value; // Ensure it's an array
-    }
-
-    try {
-      // ✅ Check if the device already exists
-      const devices = await firstValueFrom(this.deviceService.getDevices());
-      const existingDevice = devices.find(d => d.http_endpoint === deviceData.http_endpoint);
-
-      if (existingDevice) {
-        console.log("🔄 Device already exists. Registering in LLM...");
-        await firstValueFrom(this.deviceService.registerDevice(deviceData)); // Manually register in LLM
-      } else {
-        console.log("🆕 Registering new device...");
-        await firstValueFrom(this.deviceService.createDevice(deviceData));
+  async onSubmit(): Promise<void> {
+    if (this.configForm.valid && !this.isSubmitting) {
+      this.isSubmitting = true;
+      let deviceData = { ...this.configForm.value };
+  
+      if (deviceData.type === 'dosing_unit') {
+        // Filter out any pump configuration that does not have a valid chemical_name
+        deviceData.pump_configurations = this.pumpConfigs.value.filter(
+          (pump: any) => pump.chemical_name && pump.chemical_name.trim().length > 0
+        );
       }
-
-      // ✅ Successfully registered, proceed with LLM call
-      this.snackBar.open('Device registered successfully', 'Close', { duration: 3000 });
-      this.dialogRef.close(deviceData);
-
-    } catch (error) {
-      console.error('❌ Error:', error);
-      this.snackBar.open('Error registering device', 'Close', { duration: 3000 });
-    } finally {
-      this.isSubmitting = false;
+  
+      try {
+        // Check if the device already exists
+        const devices = await firstValueFrom(this.deviceService.getDevices());
+        const existingDevice = devices.find(d => d.http_endpoint === deviceData.http_endpoint);
+  
+        if (existingDevice) {
+          console.log("🔄 Device already exists. Registering in LLM...");
+          await firstValueFrom(this.deviceService.registerDevice(deviceData)); // Manually register in LLM
+        } else {
+          console.log("🆕 Registering new device...");
+          await firstValueFrom(this.deviceService.createDevice(deviceData));
+        }
+  
+        // Successfully registered
+        this.snackBar.open('Device registered successfully', 'Close', { duration: 3000 });
+        this.dialogRef.close(deviceData);
+  
+      } catch (error) {
+        console.error('❌ Error:', error);
+        this.snackBar.open('Error registering device', 'Close', { duration: 3000 });
+      } finally {
+        this.isSubmitting = false;
+      }
     }
   }
-}
-
+  
 
   onCancel(): void {
     this.dialogRef.close();
@@ -4059,22 +4071,21 @@ async onSubmit(): Promise<void> {
         <div *ngIf="configForm.get('type')?.value === 'dosing_unit'" class="pump-configs">
           <h3>Pump Configurations</h3>
           <div formArrayName="pump_configurations">
-            <div *ngFor="let pump of pumpConfigs.controls; let i=index" 
-                 [formGroupName]="i" class="pump-config">
-              <h4>Pump {{i + 1}}</h4>
+            <div *ngFor="let pump of pumpConfigs.controls; let i = index" [formGroupName]="i" class="pump-config">
+              <h4>Pump {{ i + 1 }}</h4>
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Chemical Name</mat-label>
-                <input matInput formControlName="chemical_name" 
-                       placeholder="e.g., pH Up">
+                <input matInput formControlName="chemical_name" placeholder="e.g., pH Up">
               </mat-form-field>
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Description</mat-label>
-                <input matInput formControlName="chemical_description" 
-                       placeholder="Optional description">
+                <input matInput formControlName="chemical_description" placeholder="Optional description">
               </mat-form-field>
             </div>
           </div>
+          <button mat-button color="primary" (click)="addPumpConfig()">Add Pump Configuration</button>
         </div>
+        
 
         <!-- Sensor Parameters (shown only for sensor types) -->
         <div *ngIf="configForm.get('type')?.value.includes('sensor')" 
@@ -4517,11 +4528,14 @@ export class DeviceService {
    * for sensor devices, it uses the sensor endpoint.
    */
   createDevice(device: Device): Observable<Device> {
+    const token = localStorage.getItem('access_token');
+    const headers = token ? new HttpHeaders().set('Authorization', `Bearer ${token}`) : undefined;
     const endpoint = device.type === 'dosing_unit'
       ? `${this.apiUrl}/devices/dosing`
       : `${this.apiUrl}/devices/sensor`;
-    return this.http.post<Device>(endpoint, device);
+    return this.http.post<Device>(endpoint, device, { headers });
   }
+  
 
   /**
    * Get devices with an optional user filter.
