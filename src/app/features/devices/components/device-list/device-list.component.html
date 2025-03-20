@@ -1,1 +1,46 @@
-<p>device-list works!</p>
+<div class="device-list-container">
+    <div class="header">
+      <h2>Devices</h2>
+      <button mat-raised-button color="primary" (click)="openDiscoverDialog()">
+        Discover Device
+      </button>
+    </div>
+  
+    <div class="table-container" *ngIf="(devices$ | async)?.length; else noDevices">
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Status</th>
+              <th>Version</th>
+              <th>HTTP Endpoint</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let device of (devices$ | async)">
+              <td>{{ device.id }}</td>
+              <td>{{ device.name }}</td>
+              <td>{{ device.status || 'N/A' }}</td>
+              <td>{{ device.version || 'N/A' }}</td>
+              <td>{{ device.http_endpoint }}</td>
+              <td>
+                <button mat-button (click)="viewDevice(device.id)">
+                  <mat-icon>visibility</mat-icon> View
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  
+    <ng-template #noDevices>
+      <div class="empty-state">
+        <p>No devices available.</p>
+      </div>
+    </ng-template>
+  </div>
+  

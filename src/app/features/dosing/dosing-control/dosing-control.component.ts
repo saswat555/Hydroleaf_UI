@@ -63,7 +63,7 @@ export class DosingControlComponent implements OnInit {
       }
     };
 
-    this.http.post(`http://localhost:8000/api/v1/dosing/llm-request?device_id=${this.selectedDevice.id}`, requestData)
+    this.http.post(`http://localhost:8000/api/v1/dosing/llm-request`, requestData)
       .pipe(
         tap(response => {
           console.log("LLM Response:", response);

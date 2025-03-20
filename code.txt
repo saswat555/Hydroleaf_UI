@@ -75,8 +75,8 @@ bootstrapApplication(AppComponent, {
       {
         path: 'admin',
         loadChildren: () =>
-          import('./app/features/admin/admin-user-management.component').then(m => m.AdminUserManagementComponent)
-      },
+          import('./app/features/admin/admin-user-management.module').then(m => m.AdminUserManagementModule)
+      },            
       {
         path: 'farms',
         loadChildren: () =>
@@ -1383,7 +1383,7 @@ describe('PlantControlComponent', () => {
         </tr>
       </tbody>
     </table>
-    <ng-container *ngif="(plants$ | async) as plants">
+    <ng-container *ngIf="(plants$ | async) as plants">
       <div class="empty-state" *ngIf=" plants.length === 0">
         <p>No plants available. Create your first plant!</p>
       </div>
@@ -1724,12 +1724,6 @@ export class FarmsModule { }
           Auto Discover Devices
         </button>
       </ng-container>      
-      <!-- Admin-only: button for auto discovery -->
-      <ng-container *ngIf="isAdmin">
-        <button mat-raised-button color="primary" style="margin-left: 20px;" (click)="autoDiscoverDevices()">
-          Auto Discover Devices
-        </button>
-      </ng-container>
     </div>
   </div>
 
@@ -2563,7 +2557,7 @@ export class DosingControlComponent implements OnInit {
       }
     };
 
-    this.http.post(`http://localhost:8000/api/v1/dosing/llm-request?device_id=${this.selectedDevice.id}`, requestData)
+    this.http.post(`http://localhost:8000/api/v1/dosing/llm-request`, requestData)
       .pipe(
         tap(response => {
           console.log("LLM Response:", response);
@@ -3786,11 +3780,11 @@ import { Component } from '@angular/core';
   selector: 'app-device-detail',
   imports: [],
   templateUrl: './device-detail.component.html',
-  styleUrl: './device-detail.component.scss'
+  styleUrls: ['./device-detail.component.scss'] // fixed
 })
-export class DeviceDetailComponent {
 
-}
+export class DeviceDetailComponent { }
+
 
 
 ----- src/app/features/devices/components/device-detail/device-detail.component.html -----
@@ -3826,7 +3820,7 @@ describe('DeviceDetailComponent', () => {
 ----- src/app/features/devices/components/device-configuration-dialog/device-configuration-dialog.component.ts -----
 import { Component, OnInit, Inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, FormArray, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, FormArray, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -3839,6 +3833,19 @@ import { firstValueFrom } from 'rxjs';
 
 interface DialogData {
   device?: any;
+}
+
+/**
+ * Custom validator for pump_configurations.
+ * If type is "dosing_unit", ensure that the pump_configurations FormArray has at least one item.
+ */
+function pumpConfigsConditionalValidator(formGroup: AbstractControl): ValidationErrors | null {
+  const type = formGroup.get('type')?.value;
+  const pumpConfigs = formGroup.get('pump_configurations') as FormArray;
+  if (type === 'dosing_unit' && pumpConfigs && pumpConfigs.length < 1) {
+    return { pumpConfigsRequired: true };
+  }
+  return null;
 }
 
 @Component({
@@ -3874,21 +3881,22 @@ export class DeviceConfigurationDialogComponent implements OnInit {
     private deviceService: DeviceService,
     private snackBar: MatSnackBar
   ) {
+    // Create the form group.
+    // http_endpoint now requires a valid URL starting with http:// or https://
     this.configForm = this.fb.group({
+      mac_id: ['', Validators.required],
       name: ['', [Validators.required, Validators.minLength(3)]],
       type: ['', Validators.required],
-      http_endpoint: ['', [
-        Validators.required,
-        Validators.pattern('')  // ✅ Allows full URLs
-      ]],
+      http_endpoint: ['', [Validators.required, Validators.pattern(/^https?:\/\/.*/)]],
       location_description: [''],
+      farm_id: ['', Validators.required],
       pump_configurations: this.fb.array([]),
       sensor_parameters: this.fb.group({
         calibration: [''],
         measurement_interval: [30],
         alert_thresholds: ['']
       })
-    });
+    }, { validators: pumpConfigsConditionalValidator });
   }
 
   get pumpConfigs(): FormArray {
@@ -3897,103 +3905,85 @@ export class DeviceConfigurationDialogComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.data?.device) {
-      this.configForm.patchValue(this.data.device);
+      // Auto-populate mac_id: extract value after underscore from device name if not provided.
+      let mac_id = this.data.device.mac_id || '';
+      if (!mac_id && this.data.device.name && this.data.device.name.includes('_')) {
+        const parts = this.data.device.name.split('_');
+        if (parts.length > 1) {
+          mac_id = parts[1];
+        }
+      }
+      // Repopulate http_endpoint from device ip if not provided.
+      const defaultHttpEndpoint = this.data.device.http_endpoint 
+        || (this.data.device.ip ? `http://${this.data.device.ip}` : '');
+  
+      const deviceData = {
+        mac_id: mac_id,
+        name: this.data.device.name || '',
+        type: this.data.device.type ? this.data.device.type.toLowerCase() : '',
+        http_endpoint: defaultHttpEndpoint,
+        location_description: this.data.device.location_description || '',
+        farm_id: this.data.device.farm_id || '',
+        pump_configurations: this.data.device.pump_configurations || [],
+        sensor_parameters: this.data.device.sensor_parameters || { calibration: '', measurement_interval: 30, alert_thresholds: '' }
+      };
+      this.configForm.patchValue(deviceData);
     }
   
-    // Instead of auto‑initializing pump configs when type is 'dosing_unit',
-    // just clear them. Let the user add pump configs manually.
+    // Listen for changes in pump_configurations array to update the overall form validity.
+    this.pumpConfigs.valueChanges.subscribe(() => {
+      this.configForm.updateValueAndValidity();
+    });
+  
+    // When type changes, if type is dosing_unit and no pump config exists, add one.
     this.configForm.get('type')?.valueChanges.subscribe(type => {
-      if (type !== 'dosing_unit') {
+      if (type === 'dosing_unit' && this.pumpConfigs.length === 0) {
+        this.addPumpConfig();
+      } else if (type !== 'dosing_unit') {
         this.pumpConfigs.clear();
       }
+      this.configForm.updateValueAndValidity();
     });
   }
+  
   addPumpConfig(): void {
     const pumpGroup = this.fb.group({
-      pump_number: ['', Validators.required],
+      pump_number: [this.pumpConfigs.length + 1, Validators.required],
       chemical_name: ['', Validators.required],
       chemical_description: ['']
     });
     this.pumpConfigs.push(pumpGroup);
+    this.configForm.updateValueAndValidity({ onlySelf: false, emitEvent: true });
   }
-    
-
-  private initializePumpConfigs(): void {
-    const pumps = this.pumpConfigs;
-    pumps.clear();
-
-    for (let i = 0; i < 4; i++) {
-      pumps.push(this.fb.group({
-        pump_number: [i + 1, Validators.required], 
-        chemical_name: ['', Validators.required],
-        chemical_description: ['']
-      }));
-    }
-  }
-
-  /** ✅ Converts pump_configurations array to required key-value object format */
-  private formatPumpConfigurations(): any {
-    const pumpsArray = this.configForm.value.pump_configurations || [];
-    const pumpsObject: any = {};
-    
-    pumpsArray.forEach((pump: any, index: number) => {
-      pumpsObject[`pump${index + 1}`] = {
-        chemical_name: pump.chemical_name,
-        chemical_description: pump.chemical_description
-      };
-    });
-
-    return pumpsObject;
-  }
-
-  /** ✅ Registers the device before saving its configuration */
-  private registerDevice(deviceData: any): Promise<any> {
-    return new Promise((resolve, reject) => {
-      this.deviceService.registerDevice(deviceData).subscribe({
-        next: (response) => {
-          console.log("✅ Device Registered:", response);
-          resolve(response);
-        },
-        error: (error) => {
-          console.error("❌ Device Registration Failed:", error);
-          this.snackBar.open('Device registration failed', 'Close', { duration: 3000 });
-          reject(error);
-        }
-      });
-    });
-  }
-
+  
   async onSubmit(): Promise<void> {
     if (this.configForm.valid && !this.isSubmitting) {
       this.isSubmitting = true;
       let deviceData = { ...this.configForm.value };
+      
+      // Convert farm_id to an integer.
+      if (deviceData.farm_id) {
+        deviceData.farm_id = parseInt(deviceData.farm_id, 10);
+      }
   
       if (deviceData.type === 'dosing_unit') {
-        // Filter out any pump configuration that does not have a valid chemical_name
         deviceData.pump_configurations = this.pumpConfigs.value.filter(
           (pump: any) => pump.chemical_name && pump.chemical_name.trim().length > 0
         );
+        if (deviceData.pump_configurations.length < 1) {
+          this.snackBar.open('Please add at least one pump configuration', 'Close', { duration: 3000 });
+          this.isSubmitting = false;
+          return;
+        }
       }
   
       try {
-        // Check if the device already exists
-        const devices = await firstValueFrom(this.deviceService.getDevices());
-        const existingDevice = devices.find(d => d.http_endpoint === deviceData.http_endpoint);
-  
-        if (existingDevice) {
-          console.log("🔄 Device already exists. Registering in LLM...");
-          await firstValueFrom(this.deviceService.registerDevice(deviceData)); // Manually register in LLM
-        } else {
-          console.log("🆕 Registering new device...");
-          await firstValueFrom(this.deviceService.createDevice(deviceData));
-        }
-  
-        // Successfully registered
+        console.log("Registering device with data:", deviceData);
+        await firstValueFrom(this.deviceService.createDevice(deviceData));
         this.snackBar.open('Device registered successfully', 'Close', { duration: 3000 });
         this.dialogRef.close(deviceData);
-  
       } catch (error) {
-        console.error('❌ Error:', error);
+        console.error('Error registering device:', error);
         this.snackBar.open('Error registering device', 'Close', { duration: 3000 });
       } finally {
         this.isSubmitting = false;
@@ -4001,7 +3991,6 @@ export class DeviceConfigurationDialogComponent implements OnInit {
     }
   }
   
-
   onCancel(): void {
     this.dialogRef.close();
   }
@@ -4010,115 +3999,135 @@ export class DeviceConfigurationDialogComponent implements OnInit {
 
 ----- src/app/features/devices/components/device-configuration-dialog/device-configuration-dialog.component.html -----
 <div class="dialog-container">
-    <h2 mat-dialog-title>Configure Device</h2>
-    
-    <form [formGroup]="configForm" class="config-form">
-      <mat-dialog-content>
-        <div class="form-row">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Device Name</mat-label>
-            <input matInput formControlName="name" placeholder="Enter device name">
-            <mat-hint>Give your device a unique name</mat-hint>
-            <mat-error *ngIf="configForm.get('name')?.hasError('required')">
-              Name is required
-            </mat-error>
-            <mat-error *ngIf="configForm.get('name')?.hasError('minlength')">
-              Name must be at least 3 characters
-            </mat-error>
-          </mat-form-field>
-        </div>
-  
-        <div class="form-row">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Device Type</mat-label>
-            <mat-select formControlName="type">
-              <mat-option *ngFor="let type of deviceTypes" [value]="type.value">
-                {{type.label}}
-              </mat-option>
-            </mat-select>
-            <mat-hint>Select the type of device you're configuring</mat-hint>
-            <mat-error *ngIf="configForm.get('type')?.hasError('required')">
-              Device type is required
-            </mat-error>
-          </mat-form-field>
-        </div>
-  
-        <div class="form-row">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>HTTP Endpoint</mat-label>
-            <input matInput formControlName="http_endpoint" 
-                   placeholder="000.000.000.000">
-            <mat-hint>Format: hydroleaf/pump_controller_1/command</mat-hint>
-            <mat-error *ngIf="configForm.get('http_endpoint')?.hasError('required')">
-              HTTP Endpoint is required
-            </mat-error>
-            <mat-error *ngIf="configForm.get('http_endpoint')?.hasError('pattern')">
-              Invalid format. Use: hydroleaf/device_id/command
-            </mat-error>
-          </mat-form-field>
-        </div>
-  
-        <div class="form-row">
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Location Description</mat-label>
-            <input matInput formControlName="location_description" 
-                   placeholder="e.g., Greenhouse 1, Zone A">
-            <mat-hint>Optional: Describe where this device is installed</mat-hint>
-          </mat-form-field>
-        </div>
+  <h2 mat-dialog-title>Configure Device</h2>
+  <form [formGroup]="configForm" class="config-form">
+    <mat-dialog-content>
+      <!-- Device Name -->
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Device Name</mat-label>
+          <input matInput formControlName="name" placeholder="Enter device name">
+          <mat-hint>Give your device a unique name</mat-hint>
+          <mat-error *ngIf="configForm.get('name')?.hasError('required')">
+            Name is required
+          </mat-error>
+          <mat-error *ngIf="configForm.get('name')?.hasError('minlength')">
+            Name must be at least 3 characters
+          </mat-error>
+        </mat-form-field>
+      </div>
 
-        <!-- Pump Configurations Section (shown only for dosing units) -->
-        <div *ngIf="configForm.get('type')?.value === 'dosing_unit'" class="pump-configs">
-          <h3>Pump Configurations</h3>
-          <div formArrayName="pump_configurations">
-            <div *ngFor="let pump of pumpConfigs.controls; let i = index" [formGroupName]="i" class="pump-config">
-              <h4>Pump {{ i + 1 }}</h4>
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Chemical Name</mat-label>
-                <input matInput formControlName="chemical_name" placeholder="e.g., pH Up">
-              </mat-form-field>
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Description</mat-label>
-                <input matInput formControlName="chemical_description" placeholder="Optional description">
-              </mat-form-field>
-            </div>
+      <!-- Device Type -->
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Device Type</mat-label>
+          <mat-select formControlName="type">
+            <mat-option *ngFor="let type of deviceTypes" [value]="type.value">
+              {{ type.label }}
+            </mat-option>
+          </mat-select>
+          <mat-hint>Select the type of device you're configuring</mat-hint>
+          <mat-error *ngIf="configForm.get('type')?.hasError('required')">
+            Device type is required
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- HTTP Endpoint -->
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>HTTP Endpoint</mat-label>
+          <input matInput formControlName="http_endpoint" placeholder="http://...">
+          <mat-hint>Defaults to device IP if not provided</mat-hint>
+          <mat-error *ngIf="configForm.get('http_endpoint')?.hasError('required')">
+            HTTP Endpoint is required
+          </mat-error>
+          <mat-error *ngIf="configForm.get('http_endpoint')?.hasError('pattern')">
+            Must start with "http://" or "https://"
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- Location Description -->
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Location Description</mat-label>
+          <input matInput formControlName="location_description" placeholder="e.g., Greenhouse 1, Zone A">
+          <mat-hint>Optional: Describe where this device is installed</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <!-- Pump Configurations (only if dosing_unit) -->
+      <div *ngIf="configForm.get('type')?.value === 'dosing_unit'" class="pump-configs">
+        <h3>Pump Configurations</h3>
+        <div formArrayName="pump_configurations">
+          <div *ngFor="let pump of pumpConfigs.controls; let i = index" [formGroupName]="i" class="pump-config">
+            <h4>Pump {{ i + 1 }}</h4>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Chemical Name</mat-label>
+              <input matInput formControlName="chemical_name" placeholder="e.g., pH Up">
+              <mat-error *ngIf="pump.get('chemical_name')?.hasError('required')">
+                Chemical name is required
+              </mat-error>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Description</mat-label>
+              <input matInput formControlName="chemical_description" placeholder="Optional description">
+            </mat-form-field>
           </div>
-          <button mat-button color="primary" (click)="addPumpConfig()">Add Pump Configuration</button>
         </div>
-        
+        <button mat-button color="primary" (click)="addPumpConfig()">Add Pump Configuration</button>
+      </div>
 
-        <!-- Sensor Parameters (shown only for sensor types) -->
-        <div *ngIf="configForm.get('type')?.value.includes('sensor')" 
-             formGroupName="sensor_parameters" class="sensor-params">
-          <h3>Sensor Parameters</h3>
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Measurement Interval (seconds)</mat-label>
-            <input matInput type="number" formControlName="measurement_interval">
-          </mat-form-field>
-        </div>
+      <!-- Sensor Parameters (if sensor type) -->
+      <div *ngIf="configForm.get('type')?.value.includes('sensor')" formGroupName="sensor_parameters" class="sensor-params">
+        <h3>Sensor Parameters</h3>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Measurement Interval (seconds)</mat-label>
+          <input matInput type="number" formControlName="measurement_interval">
+        </mat-form-field>
+      </div>
 
-        <!-- Form Debug Information -->
-        <div class="debug-info" style="margin: 20px 0; padding: 10px; background: #f5f5f5; font-size: 12px;">
-          <div>Form Valid: {{ configForm.valid }}</div>
-          <div>Name Valid: {{ configForm.get('name')?.valid }}</div>
-          <div>Type Valid: {{ configForm.get('type')?.valid }}</div>
-          <div>HTTP Endpoint Valid: {{ configForm.get('http_endpoint')?.valid }}</div>
-        </div>
-      </mat-dialog-content>
-  
-      <mat-dialog-actions align="end">
-        <button mat-button (click)="onCancel()" [disabled]="isSubmitting">Cancel</button>
-        <button mat-raised-button color="primary" 
-                [disabled]="!configForm.get('name')?.valid || 
-                           !configForm.get('type')?.valid || 
-                           !configForm.get('http_endpoint')?.valid || 
-                           isSubmitting"
-                (click)="onSubmit()">
-          {{isSubmitting ? 'Saving...' : 'Save Configuration'}}
-        </button>
-      </mat-dialog-actions>
-    </form>
-  </div>
+      <!-- MAC ID -->
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>MAC ID</mat-label>
+          <input matInput formControlName="mac_id" placeholder="Enter MAC ID">
+          <mat-error *ngIf="configForm.get('mac_id')?.hasError('required')">
+            MAC ID is required
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- Farm ID -->
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Farm ID</mat-label>
+          <input matInput formControlName="farm_id" type="number" placeholder="Enter Farm ID">
+          <mat-error *ngIf="configForm.get('farm_id')?.hasError('required')">
+            Farm ID is required
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- Debug Information -->
+      <div class="debug-info" style="margin: 20px 0; padding: 10px; background: #f5f5f5; font-size: 12px;">
+        <div>Form Valid: {{ configForm.valid }}</div>
+        <div>Name Valid: {{ configForm.get('name')?.valid }}</div>
+        <div>Type Valid: {{ configForm.get('type')?.valid }}</div>
+        <div>HTTP Endpoint Valid: {{ configForm.get('http_endpoint')?.valid }}</div>
+      </div>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button mat-button (click)="onCancel()" [disabled]="isSubmitting">Cancel</button>
+      <button mat-raised-button color="primary" [disabled]="!configForm.valid || isSubmitting" (click)="onSubmit()">
+        {{ isSubmitting ? 'Saving...' : 'Save Configuration' }}
+      </button>
+    </mat-dialog-actions>
+  </form>
+</div>
+
 
 ----- src/app/features/devices/components/device-configuration-dialog/device-configuration-dialog.component.scss -----
 .dialog-container {
@@ -4171,8 +4180,9 @@ import { Component } from '@angular/core';
   selector: 'app-device-list',
   imports: [],
   templateUrl: './device-list.component.html',
-  styleUrl: './device-list.component.scss'
+  styleUrls: ['./device-list.component.scss']
 })
+
 export class DeviceListComponent {
 
 }

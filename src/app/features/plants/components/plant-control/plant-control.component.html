@@ -91,7 +91,7 @@
         </tr>
       </tbody>
     </table>
-    <ng-container *ngif="(plants$ | async) as plants">
+    <ng-container *ngIf="(plants$ | async) as plants">
       <div class="empty-state" *ngIf=" plants.length === 0">
         <p>No plants available. Create your first plant!</p>
       </div>
